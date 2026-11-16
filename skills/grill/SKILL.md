@@ -1,6 +1,6 @@
 ---
 name: grill
-description: Reach a shared understanding of what to build before building it, through short rounds of questions with recommended answers. Use this whenever the user brings a new idea, feature, design or change that isn't fully specified, or says "grill me", before writing a plan or code. For efforts too big for one session, use wayfind.
+description: Reach a shared understanding of what to build before building it, through short rounds of questions with recommended answers. Use this whenever the user brings a new idea, feature, design or change that isn't fully specified, or says "grill me", before writing a plan or code. For efforts too big or foggy for one session, use plan in map mode.
 ---
 
 # Grill
@@ -27,7 +27,7 @@ whose answer depends on an unanswered one.
 
 When the frontier is empty, write a short design sketch: the goal, the decisions
 made, what is out of scope and the open risks. Wait for the user to confirm it
-before acting. If the work is bigger than one session, suggest `plan` or
+before acting. If the work is bigger than one session, suggest `plan` (map mode) or
 `to-tickets` next.
 
 Adapted from mattpocock/skills (skills/productivity/grilling) and obra/superpowers (skills/brainstorming) (MIT; see UPSTREAM_LICENSE).

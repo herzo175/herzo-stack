@@ -20,8 +20,7 @@ what helped and cutting always-on bootstraps, "MUST" triggers and ticket sprawl.
 | `deslop` | Write plainly. | Lauren Tan's pstack `unslop` |
 | `correct` | Make a repeated mistake impossible instead of adding another rule. | Lauren Tan's pstack `correct` |
 | `grill` | Reach a shared understanding of what to build before building it, through short rounds of questions with recommended answers. | mattpocock/skills (skills/productivity/grilling) and obra/superpowers (skills/brainstorming) |
-| `wayfind` | Find the route for an effort too big or too foggy for one session, one decision at a time, in a single map file. | Matt Pocock's `wayfinder` |
-| `plan` | Write a step-by-step plan with a check for every step. | obra/superpowers (skills/writing-plans) and cursor/plugins (pstack/skills/principle-sequence-verifiable-units) |
+| `plan` | Plan a change before building it, at the right scale: a step plan, or a decision map for foggy multi-session efforts. | obra/superpowers (skills/writing-plans), pstack and mattpocock/skills (wayfinder) |
 | `execute-plan` | Carry out a written plan task by task, checking each step and recording decisions. | obra/superpowers (skills/executing-plans, skills/subagent-driven-development) and cursor/plugins (pstack/skills/principle-sequence-verifiable-units) |
 | `to-tickets` | Split a plan, spec or conversation into end-to-end tickets with blockers, in the issue tracker. | mattpocock/skills (skills/engineering/to-tickets, skills/engineering/to-spec) |
 | `how-why` | Explain how code works and why it was built that way, with file:line references and the commit and PR record. | cursor/plugins (pstack/skills/how, pstack/skills/why) |
