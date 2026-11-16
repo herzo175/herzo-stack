@@ -1,6 +1,6 @@
 ---
 name: blast-radius
-description: Find what a change could break beyond its diff, and prove the facts its safety rests on. Use this before merging or shipping anything you don't fully trust: shared code, data formats, migrations, config, concurrency or auth, or whenever the user asks what could break.
+description: "Find what a change could break beyond its diff, and prove the facts its safety rests on. Use this before merging or shipping anything you don't fully trust: shared code, data formats, migrations, config, concurrency or auth, or whenever the user asks what could break."
 ---
 
 # Blast radius

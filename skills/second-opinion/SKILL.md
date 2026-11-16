@@ -1,6 +1,6 @@
 ---
 name: second-opinion
-description: Get a fresh-context reviewer to try to break a decision, change or claim before it stands. Use this before committing to anything hard to undo (a migration, deploy, public interface or architectural choice) and whenever the user asks to challenge, stress-test or double-check something.
+description: "Get a fresh-context reviewer to try to break a decision, change or claim before it stands. Use this before committing to anything hard to undo (a migration, deploy, public interface or architectural choice) and whenever the user asks to challenge, stress-test or double-check something."
 ---
 
 # Second opinion

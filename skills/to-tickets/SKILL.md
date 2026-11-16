@@ -1,6 +1,6 @@
 ---
 name: to-tickets
-description: Split a plan, spec or conversation into end-to-end tickets with blockers, in the issue tracker. Use this whenever the user wants work broken into issues, assigned out, or tracked across sessions or people.
+description: "Split a plan, spec or conversation into end-to-end tickets with blockers, in the issue tracker. Use this whenever the user wants work broken into issues, assigned out, or tracked across sessions or people."
 ---
 
 # To tickets

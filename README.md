@@ -48,5 +48,7 @@ done
   session-start bootstrap.
 - Before building a new mechanism, the skill should point at `research` to find the standard
   approach first.
+- Quote the description in double quotes: an unquoted `: ` inside it breaks YAML for some
+  installers (the `skills` CLI skips the skill).
 - Keep the body under about 800 tokens; put long references in a separate file the body links to.
 - Keep upstream licenses in `UPSTREAM_LICENSE` when adapting someone else's skill.

@@ -1,6 +1,6 @@
 ---
 name: deslop
-description: Write plainly. Use this whenever you write or edit something people will read: a PR body, issue comment, commit message, doc, summary or report. It removes filler, AI vocabulary and inflated phrasing.
+description: "Write plainly. Use this whenever you write or edit something people will read: a PR body, issue comment, commit message, doc, summary or report. It removes filler, AI vocabulary and inflated phrasing."
 ---
 
 # Deslop

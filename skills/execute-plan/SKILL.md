@@ -1,6 +1,6 @@
 ---
 name: execute-plan
-description: Carry out a written plan task by task, checking each step and recording decisions. Use this whenever you have a plan (from plan or the user) and are about to implement it, so work proceeds without stopping to ask between tasks.
+description: "Carry out a written plan task by task, checking each step and recording decisions. Use this whenever you have a plan (from plan or the user) and are about to implement it, so work proceeds without stopping to ask between tasks."
 ---
 
 # Execute a plan

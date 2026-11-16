@@ -1,6 +1,6 @@
 ---
 name: measure
-description: Check a number before reporting or acting on it. Use this whenever you're about to claim a speedup, memory or size figure, row count, cost, scale estimate or before/after comparison, even an informal one, so the claim survives a skeptical reviewer.
+description: "Check a number before reporting or acting on it. Use this whenever you're about to claim a speedup, memory or size figure, row count, cost, scale estimate or before/after comparison, even an informal one, so the claim survives a skeptical reviewer."
 ---
 
 # Measure before you claim

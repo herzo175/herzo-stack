@@ -1,6 +1,6 @@
 ---
 name: debugging
-description: Find the cause of a bug with a reproducing loop before changing code. Use this whenever a test fails, a command or pipeline errors, output is wrong, something is flaky or slow, or a fix didn't work, even if the cause looks obvious. Don't patch symptoms, raise limits or add retries before running it.
+description: "Find the cause of a bug with a reproducing loop before changing code. Use this whenever a test fails, a command or pipeline errors, output is wrong, something is flaky or slow, or a fix didn't work, even if the cause looks obvious. Don't patch symptoms, raise limits or add retries before running it."
 ---
 
 # Debugging

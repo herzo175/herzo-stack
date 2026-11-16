@@ -1,6 +1,6 @@
 ---
 name: correct
-description: Make a repeated mistake impossible instead of adding another rule. Use this whenever the same review finding, correction or revert has happened twice in a repository, or the user says agents keep doing something wrong.
+description: "Make a repeated mistake impossible instead of adding another rule. Use this whenever the same review finding, correction or revert has happened twice in a repository, or the user says agents keep doing something wrong."
 ---
 
 # Make repeated mistakes impossible

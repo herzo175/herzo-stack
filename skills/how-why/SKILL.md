@@ -1,6 +1,6 @@
 ---
 name: how-why
-description: Explain how code works and why it was built that way, with file:line references and the commit and PR record. Use this whenever you're about to change unfamiliar code, the user asks how or why something works, or you need to decide where a change belongs.
+description: "Explain how code works and why it was built that way, with file:line references and the commit and PR record. Use this whenever you're about to change unfamiliar code, the user asks how or why something works, or you need to decide where a change belongs."
 ---
 
 # How and why

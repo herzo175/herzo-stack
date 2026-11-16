@@ -1,6 +1,6 @@
 ---
 name: handoff
-description: Write a document a fresh session can continue from. Use this whenever the conversation is getting long, the user wants to continue later or in another session, or work is being passed to another agent.
+description: "Write a document a fresh session can continue from. Use this whenever the conversation is getting long, the user wants to continue later or in another session, or work is being passed to another agent."
 ---
 
 # Handoff

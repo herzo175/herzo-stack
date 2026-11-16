@@ -1,6 +1,6 @@
 ---
 name: tdd
-description: Write a failing test before fixing a bug. Use this whenever you fix a bug that has a cheap local test path, or a regression test is asked for. Skip it only when the only possible test would be slow, brittle or production-only.
+description: "Write a failing test before fixing a bug. Use this whenever you fix a bug that has a cheap local test path, or a regression test is asked for. Skip it only when the only possible test would be slow, brittle or production-only."
 ---
 
 # Test first for bug fixes

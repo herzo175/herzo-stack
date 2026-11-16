@@ -1,6 +1,6 @@
 ---
 name: simplify-diff
-description: Clean up your own diff without changing behavior. Use this every time a change works and its tests pass, before you commit or push for review, to remove dead code, duplication, layered patches and comments that restate code.
+description: "Clean up your own diff without changing behavior. Use this every time a change works and its tests pass, before you commit or push for review, to remove dead code, duplication, layered patches and comments that restate code."
 ---
 
 # Simplify your diff before review

@@ -1,6 +1,6 @@
 ---
 name: plan
-description: Plan a change before building it, at the right scale. Use this whenever requirements are agreed and the work touches several files, steps or systems, before editing code, even if the plan seems obvious. Also use it when the destination is clear but the route isn't, or planning would take more than one session (a greenfield project, a large migration, a redesign), instead of writing one big upfront plan.
+description: "Plan a change before building it, at the right scale. Use this whenever requirements are agreed and the work touches several files, steps or systems, before editing code, even if the plan seems obvious. Also use it when the destination is clear but the route isn't, or planning would take more than one session (a greenfield project, a large migration, a redesign), instead of writing one big upfront plan."
 ---
 
 # Plan

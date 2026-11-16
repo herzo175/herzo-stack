@@ -1,6 +1,6 @@
 ---
 name: prototype
-description: Build a quick throwaway to answer one design question. Use this whenever talking can't settle how something should look or behave (a state model, a flow, a screen, an API shape) and a rough concrete artifact would.
+description: "Build a quick throwaway to answer one design question. Use this whenever talking can't settle how something should look or behave (a state model, a flow, a screen, an API shape) and a rough concrete artifact would."
 ---
 
 # Prototype

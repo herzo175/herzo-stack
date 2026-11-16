@@ -1,6 +1,6 @@
 ---
 name: research
-description: Look up how something is actually done, from primary sources, before deciding or building. Use this whenever a decision depends on a fact outside the repository (an API's behavior, a library's capabilities, a platform's limits, pricing, a version's changes), and before designing any new mechanism such as infrastructure, auth or tokens, an integration, scheduling, retries or caching, to find the standard approach and existing tools first. Use it even when you think you already know the answer, if being wrong would mean building the wrong thing.
+description: "Look up how something is actually done, from primary sources, before deciding or building. Use this whenever a decision depends on a fact outside the repository (an API's behavior, a library's capabilities, a platform's limits, pricing, a version's changes), and before designing any new mechanism such as infrastructure, auth or tokens, an integration, scheduling, retries or caching, to find the standard approach and existing tools first. Use it even when you think you already know the answer, if being wrong would mean building the wrong thing."
 ---
 
 # Research

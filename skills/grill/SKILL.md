@@ -1,6 +1,6 @@
 ---
 name: grill
-description: Reach a shared understanding of what to build before building it, through short rounds of questions with recommended answers. Use this whenever the user brings a new idea, feature, design or change that isn't fully specified, or says "grill me", before writing a plan or code. For efforts too big or foggy for one session, use plan in map mode.
+description: "Reach a shared understanding of what to build before building it, through short rounds of questions with recommended answers. Use this whenever the user brings a new idea, feature, design or change that isn't fully specified, or says \"grill me\", before writing a plan or code. For efforts too big or foggy for one session, use plan in map mode."
 ---
 
 # Grill
