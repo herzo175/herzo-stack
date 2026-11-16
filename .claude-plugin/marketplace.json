@@ -1,0 +1,24 @@
+{
+  "name": "herzo-stack",
+  "owner": {
+    "name": "Jeremy Herzog",
+    "url": "https://github.com/herzo175"
+  },
+  "description": "Personal agent skills with concrete triggers, adapted from superpowers, Matt Pocock, pstack and Addy Osmani.",
+  "plugins": [
+    {
+      "name": "herzo-stack",
+      "source": "./",
+      "description": "Research-first planning, debugging, TDD, measurement, review and writing skills for coding agents.",
+      "category": "engineering",
+      "keywords": [
+        "engineering",
+        "skills",
+        "planning",
+        "debugging",
+        "tdd",
+        "review"
+      ]
+    }
+  ]
+}

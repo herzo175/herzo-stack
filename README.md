@@ -31,15 +31,65 @@ what helped and cutting always-on bootstraps, "MUST" triggers and ticket sprawl.
 
 ## Install
 
-Link the skills into the directories your harnesses read, so edits here are live:
+Pick one route per agent. Installing the same skills twice (say, as a Claude Code plugin and
+through `npx skills`) gives the agent duplicate entries.
 
-```sh
+### Claude Code
+
+```text
+/plugin install herzo-stack --marketplace herzo175/herzo-stack
+```
+
+Or from a shell:
+
+```bash
+claude plugin marketplace add herzo175/herzo-stack
+claude plugin install herzo-stack@herzo-stack
+```
+
+Update with `claude plugin marketplace update herzo-stack` and then
+`claude plugin update herzo-stack@herzo-stack`.
+
+### Codex
+
+```bash
+codex plugin marketplace add herzo175/herzo-stack
+codex plugin add herzo-stack@herzo-stack
+```
+
+Update with `codex plugin marketplace upgrade`.
+
+### Any agent, with `npx skills`
+
+[skills.sh](https://skills.sh) installs into `~/.agents/skills` (read by Codex and others) and
+links each skill into the agents you name, such as Claude Code:
+
+```bash
+npx skills add herzo175/herzo-stack -g -s '*' -a claude-code -a codex
+```
+
+Update with `npx skills update -g -y`; re-run `add` to pick up skills added later. This is the
+route the author uses, so one install covers both Claude Code and Codex.
+
+### From a clone, while editing
+
+```bash
+git clone https://github.com/herzo175/herzo-stack ~/Documents/projects/herzo-stack
+cd ~/Documents/projects/herzo-stack
 for skill in skills/*/; do
   name=$(basename "$skill")
-  ln -sfn "$PWD/$skill" ~/.agents/skills/"$name"        # Codex and others
-  ln -sfn ../../.agents/skills/"$name" ~/.claude/skills/"$name"  # Claude Code
+  ln -sfn "$PWD/$skill" ~/.agents/skills/"$name"
+  ln -sfn ../../.agents/skills/"$name" ~/.claude/skills/"$name"
 done
 ```
+
+Edits are live immediately. Remove these links before switching to another route.
+
+### Global instructions (optional)
+
+To tell agents these skills exist and to suggest improvements to them, put a short
+`~/.agents/AGENTS.md` that lists the skills and link it as `~/.claude/CLAUDE.md` and
+`~/.codex/AGENTS.md`.
 
 ## Writing a skill here
 
@@ -52,3 +102,5 @@ done
   installers (the `skills` CLI skips the skill).
 - Keep the body under about 800 tokens; put long references in a separate file the body links to.
 - Keep upstream licenses in `UPSTREAM_LICENSE` when adapting someone else's skill.
+- When you add or remove a skill, update `.claude-plugin/plugin.json` (`skills`) and the table
+  above, and bump `version` so plugin installs pick it up.
