@@ -10,6 +10,10 @@ on. Listing callers is the easy part; the job is the breakage grep won't show:
 shared state, ordering, config, serialized formats, caches, other services and
 data already written.
 
+Read the diff and identify the one or two facts that clear most of the risk.
+Check them against installed dependency versions and local patches; trace
+lifecycle ordering and external contracts.
+
 ## How sure are you
 
 For each fact the change's safety depends on, get it as far down this list as is

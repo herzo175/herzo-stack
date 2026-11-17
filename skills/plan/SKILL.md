@@ -19,6 +19,10 @@ mechanism (infrastructure, auth or tokens, an integration, scheduling, retries, 
 standard approach and existing tools with `research`, and plan that unless you can say why it
 doesn't fit.
 
+Before planning backward compatibility, identify the existing consumers, stored data or
+deployment constraints that require it. Update all callers directly when that is safe;
+an interface with no consumers does not need a compatibility layer.
+
 ## Step plan
 
 1. Map the files to create or change and what each is responsible for. Follow the existing
@@ -27,8 +31,9 @@ doesn't fit.
    or reject alone. Put refactoring that makes the change easy first.
 3. Give each task concrete steps with a checkable result (write the failing test, see it fail,
    change, run tests, commit), naming exact files, functions and commands.
-4. Add a header: the goal in one sentence, the approach in two or three, constraints copied from
-   the requirements, and risks no check covers.
+4. Add a header: the goal in one sentence, the approach in two or three, a link to the source
+   requirements, their constraints, and risks no check covers. For tasks that exchange calls or
+   data, name their interfaces and check names, types and exact values agree.
 
 Save it where the user wants (default `docs/plans/YYYY-MM-DD-<name>.md`, or scratch), with
 checkboxes. Check every requirement maps to a task and no task does unrequested work.

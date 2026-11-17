@@ -8,7 +8,16 @@ description: "Check a number before reporting or acting on it. Use this whenever
 A number you can't explain is a guess. Check it before it goes in a PR, a
 report or a decision.
 
-## Before you run
+For counts, sizes and costs, verify the source, units, scope and arithmetic.
+Use the procedure below for performance claims, including performance
+comparisons. For model evaluations, check completed work, representative trials
+and variation across the models covered by the claim.
+
+For a rough runtime estimate the user requested, one run is enough if you check
+errors and completed work and label it a single run. Choosing between options
+still needs a full comparison.
+
+## Before a performance run
 
 - Write the sentence you expect to ship ("peak memory 5.8 GiB → 1.2 GiB on the
   full import") and the result that would change your decision.
@@ -19,7 +28,8 @@ report or a decision.
 
 1. **Why not double?** Name what bounds the result: one core, memory, disk,
    network, the source's rate limit, a lock. Get it from a profile (`py-spy`,
-   `top`, `/usr/bin/time -v`) in a run you don't report.
+   `top`, `/usr/bin/time -v`) in a run you don't report. Check the load generator
+   too; if it saturates first, you measured the harness.
 2. **Was it tuned?** Run both sides the way production runs: same data, flags,
    batch sizes, caches and versions. A side left on defaults compares settings,
    not code.
@@ -37,7 +47,7 @@ report or a decision.
 7. **Did the work happen?** Confirm the rows were written, the bytes were read and
    lazy code (generators, unawaited calls) actually ran inside the timed region.
 
-## Report
+## Report performance results
 
 Lead with the verdict: better, worse, no measurable difference or inconclusive.
 Give the number with its unit, run count, range and limiter. Call it

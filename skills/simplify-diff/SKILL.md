@@ -18,10 +18,17 @@ it.
 
 - **Subtract first.** Dead branches, unused parameters and imports,
   commented-out code, flags nothing sets, a wrapper that only forwards a call.
-- **Duplication.** A helper copied from another module (move it to a shared
-  module instead), the same check in several places.
-- **Patches on patches.** A guard, retry or special case added on top of an
-  earlier one for the same symptom. Replace the stack with the fix at the cause.
+- **Duplication.** Reuse an existing helper or extract genuinely shared behavior
+  at the smallest sensible scope; avoid dependency cycles and unrelated moves.
+- **Patches on patches.** Flag stacked guards, retries and special cases.
+  Simplify them only when behavior stays unchanged. Route a behavioral cause fix
+  through `debugging`, within the original task when already authorized.
+- **Speculative compatibility.** Prefer one supported path. Fallbacks, shims,
+  dual implementations and "legacy" branches need an existing consumer, stored
+  data or deployment constraint that requires them. Newly written code is not
+  legacy merely because the design changed. For an authorized replacement,
+  remove the superseded path and update its callers; preserve actual contracts
+  unless changing them is in scope.
 - **Comments.** Delete comments that restate the code or narrate the change
   ("now uses X"). Keep comments that say why: a constraint, a source quirk, a
   measured limit. A deliberate shortcut with a known ceiling (a full scan, a

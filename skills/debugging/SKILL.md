@@ -22,9 +22,10 @@ preference:
    high enough to work with.
 7. For "worked before": `git bisect run` with the loop as the check.
 
-The loop is ready when it runs unattended, gives the same verdict each run, takes
-seconds rather than minutes, and fails on this bug, not on something nearby. Redact
-secrets from anything you show.
+The loop is ready when it catches this exact symptom, runs quickly, and gives a
+stable verdict or a measured reproduction rate high enough to test hypotheses.
+Prefer unattended execution; if a human action is unavoidable, script the
+surrounding steps and capture pass/fail evidence each run. Redact secrets.
 
 If you can't build a loop after trying, stop and say so: list what you tried and
 what access or data would make it reproducible, instead of guessing at a fix.
@@ -48,8 +49,9 @@ first, then bisect; don't guess.
 
 ## 5. Fix at the cause
 
-Fix the first place the system goes wrong, not where the symptom shows. Before
-editing a function, find every caller (`grep -rn`): one fix in the shared
+Ask whether the triggering state is legitimate. If so, handle it where it
+breaks; otherwise find what produced it. Before editing a function, find its
+callers and sibling implementations (`rg`): one fix in the shared
 function beats a guard in the one caller the failure named, which leaves its
 siblings broken. Don't
 raise limits, add retries or catch-and-continue without a measurement that says

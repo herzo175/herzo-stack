@@ -6,7 +6,9 @@ description: "Write plainly. Use this whenever you write or edit something peopl
 # Deslop
 
 People act on what you write in PRs, comments and summaries. Say what happened
-and what to do, plainly.
+and what to do, plainly. Preserve meaning, uncertainty, quotations and useful
+technical terms; match the intended audience and tone. The lists below are
+editing cues, not a ban on literal domain vocabulary.
 
 ## Cut
 

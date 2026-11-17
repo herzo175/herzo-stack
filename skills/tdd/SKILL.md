@@ -1,6 +1,6 @@
 ---
 name: tdd
-description: "Write a failing test before fixing a bug. Use this whenever you fix a bug that has a cheap local test path, or a regression test is asked for. Skip it only when the only possible test would be slow, brittle or production-only."
+description: "Write a failing test before fixing a bug. Use this whenever you fix a bug that has a cheap local test path, or a regression test is asked for. If no practical test seam exists, use the closest executable regression check instead of building unrelated infrastructure."
 ---
 
 # Test first for bug fixes
@@ -20,8 +20,8 @@ test that fails before the fix and passes after it.
 6. Re-run the test and the nearby tests.
 
 Prefer no new test over a bad one: a test of mocks, of current implementation
-strings, of timing or global state, or one that needs production-scale
-infrastructure. Use the closest executable check instead (a script, a diff of
+strings, of timing or global state, or one that needs broad harness setup,
+expensive infrastructure or unrelated fixture churn. Use the closest executable check instead (a script, a diff of
 outputs) and say so.
 
 Never change a test to match a wrong implementation or weaken an existing

@@ -16,7 +16,7 @@ what helped and cutting always-on bootstraps, "MUST" triggers and ticket sprawl.
 | `debugging` | Find the cause of a bug with a reproducing loop before changing code. | Matt Pocock's `diagnosing-bugs` and Lauren Tan's pstack `principle-fix-root-causes`, and the `ponytail` skill |
 | `tdd` | Write a failing test before fixing a bug. | Lauren Tan's pstack `tdd` |
 | `measure` | Check a number before reporting or acting on it. | Lauren Tan's pstack `principle-explain-the-number` and `benchmark-checklist` |
-| `simplify-diff` | Clean up your own diff without changing behavior. | original |
+| `simplify-diff` | Clean up your own diff without changing behavior. | Addy Osmani, pstack and ponytail |
 | `deslop` | Write plainly. | Lauren Tan's pstack `unslop` |
 | `correct` | Make a repeated mistake impossible instead of adding another rule. | Lauren Tan's pstack `correct` |
 | `grill` | Reach a shared understanding of what to build before building it, through short rounds of questions with recommended answers. | mattpocock/skills (skills/productivity/grilling) and obra/superpowers (skills/brainstorming) |

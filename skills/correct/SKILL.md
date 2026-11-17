@@ -12,9 +12,9 @@ repository.
 
 ## Find the mistake classes
 
-Read recent review findings, corrections, reverts, commits and the
-comments that explain workarounds. Group them into classes. A class counts once
-it has happened twice. Cite the issues, PRs or runs for each.
+Read recent review findings, corrections, reverts, commits, agent instruction
+files and comments that explain workarounds. Group them into classes. A class
+counts once it has happened twice. Cite the issues, PRs or runs for each.
 
 ## Fix each class at the highest level that works
 
@@ -28,14 +28,17 @@ it has happened twice. Cite the issues, PRs or runs for each.
    more.
 3. **Behavior tests.** Fix or delete tests that pass when the behavior breaks, or
    fail when only internals change.
-4. **Guidance last**, only for judgment calls. Nothing fails when an agent skips
-   it.
+4. **Guidance last**, only for judgment calls. Record what enforces each
+   remaining rule, or why it needs judgment. Repeated violations of an existing
+   rule show that guidance alone is insufficient. Remove obsolete guidance once
+   the mistake cannot happen.
 
 ## Fix and prove
 
 Fix the most frequent classes first, one commit each. Prove each new check fails
 on a real past mistake, and run the same command locally and in CI. An exception
-goes on the offending line with a reason.
+goes on the offending line with a reason and, when temporary, an expiry or
+tracked removal condition.
 
 Report each class with its evidence, the level you chose and why a higher level
 did not work.

@@ -14,7 +14,10 @@ Turn work into tickets that each deliver something end to end.
 3. Draft vertical slices: each ticket cuts a narrow but complete path through
    every layer it needs (schema, logic, interface, tests), can be verified on its
    own, and fits in one fresh session. One mechanical change across the whole
-   codebase (a rename) is the exception: keep it as one ticket.
+   codebase can stay in one ticket when it can safely land atomically. Otherwise
+   expand compatibly, migrate callers in checked batches, then contract; wire
+   those blockers. If batches cannot stay green alone, use an integration branch
+   and a final integrate-and-verify ticket.
 4. Give each ticket its blockers: the tickets that must land first.
 5. Show the breakdown as a numbered list (title, blocked by, what it delivers)
    and ask whether the size and blockers are right. Iterate until the user

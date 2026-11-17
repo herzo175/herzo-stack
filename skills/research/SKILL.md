@@ -12,19 +12,20 @@ conversation.
 
 Start a subagent with a fresh context window and give it: the question, the decision it feeds,
 what is already known or ruled out, and where to save the findings. Keep working while it reads.
-For a quick fact (one doc page), just look it up yourself.
+For a quick fact (one doc page), just look it up yourself. If delegation is
+unavailable, do the research directly and report that limitation.
 
 ## What the researcher does
 
 1. **Go to primary sources:** official docs, the source code, the spec, first-party APIs and
    changelogs. Follow every claim in a blog post or answer back to the source that owns it.
 2. **For a new mechanism, find the standard way.** Look for the platform's native feature, the
-   approach its docs recommend, and established open-source tools that already do it. Compare two
-   or three options on fit, upkeep and risk. Name the one most people use for this exact problem.
+   approach its docs recommend, and established tools that already do it. Compare viable
+   alternatives when the choice matters; do not claim popularity without evidence.
 3. **Check the facts that would change the decision:** limits, expiry, costs, versions,
    deprecations. Note the date and version each fact applies to.
-4. **Write the findings** to one Markdown file: the question, the answer, the options compared and
-   a recommendation, each claim with its source link. Save it where the repository keeps such
+4. **Write the findings** to one Markdown file: the question, answer and sources, plus options
+   and a recommendation when choosing an approach. Save it where the repository keeps such
    notes; if there is no convention, use a scratch location and say where.
 
 ## Report back

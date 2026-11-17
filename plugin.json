@@ -1,7 +1,7 @@
 {
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "herzo-stack",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Personal agent skills with concrete triggers: research-first planning, debugging, TDD, measurement, review and plain writing.",
   "author": {
     "name": "Jeremy Herzog",

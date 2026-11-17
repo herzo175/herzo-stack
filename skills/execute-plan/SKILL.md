@@ -12,9 +12,14 @@ compacted context.
 
 - Work on a branch, or in a separate `git worktree` if other work is in
   progress in the same checkout.
+- Read the source requirements and check relevant shared interfaces before
+  starting. Requirements win over the plan; resolve material conflicts.
 - Keep a ledger next to the plan: one line per finished task with its commit and
   check result, and one line per decision you made that the plan didn't
   (`Ruling: <decision>. Why: <reason>. If wrong: <cost>`).
+- At start or after compaction, reconcile the ledger, git history and current
+  work with the checkboxes. Resume unfinished work and complete missing checks;
+  a commit alone does not prove a task finished.
 
 ## Per task
 
@@ -24,14 +29,16 @@ compacted context.
 4. Update the ledger and tick the plan's checkboxes.
 
 For a long plan with independent tasks, you can give each task to a fresh
-subagent with the task text, the relevant files and the checks, then review its
-diff against the task before moving on. Parallel subagents need separate
+subagent with the task text, relevant files, global constraints, shared
+interface decisions and checks, then review its diff against the task before
+moving on. Parallel subagents need separate
 worktrees.
 
 ## Keep going
 
 Don't stop to ask "should I continue?" between tasks. Decide ambiguities and
-record them as rulings. Stop and ask only for: an irreversible or destructive
+record them as rulings. Existing user authorization carries forward. Ask only
+when an action is outside it, including: an irreversible or destructive
 step, a security-sensitive action, an outward-facing side effect (a push to a
 shared branch, a merge, a publish), or a plan so broken that every path forward
 is a guess.
@@ -39,7 +46,7 @@ is a guess.
 ## Finish
 
 Run the full test suite, then get one fresh-context review of the whole branch
-against the plan (`second-opinion`). Report what was done, the rulings and what
-remains.
+against the plan (`second-opinion`). Verify any fixes made after review and
+report what was done, the rulings and unresolved findings.
 
 Adapted from obra/superpowers (skills/executing-plans, skills/subagent-driven-development) and cursor/plugins (pstack/skills/principle-sequence-verifiable-units) (MIT; see UPSTREAM_LICENSE).

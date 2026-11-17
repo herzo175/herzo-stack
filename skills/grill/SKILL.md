@@ -5,7 +5,9 @@ description: "Reach a shared understanding of what to build before building it, 
 
 # Grill
 
-Reach a shared understanding of what to build before building it.
+Reach a shared understanding of what to build before building it. Use existing
+context and keep settled decisions. If the goal or success criterion is missing,
+ask one open question about the outcome before recommending a solution.
 
 Map the decisions as a tree: each decision has the decisions that depend on it.
 Work in rounds. The frontier is every decision whose prerequisites are already
