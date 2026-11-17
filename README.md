@@ -59,6 +59,17 @@ codex plugin add herzo-stack@herzo-stack
 
 Update with `codex plugin marketplace upgrade`.
 
+### Capy cloud
+
+In Settings → MCP & plugins, choose **From GitHub repository** and enter
+`https://github.com/herzo175/herzo-stack`. Choose **Organization** and **All projects**
+to share the skills with the team. The root `plugin.json` and `mcp.json` package the
+same `skills/` tree using the Agent Plugins format; no MCP servers or keys are needed.
+
+New cloud threads discover the installed skills. Click **Sync** on the plugin page
+to pull GitHub updates. Remove earlier Drive copies of these skills after verifying
+the plugin, since Drive skills take precedence over plugin skills.
+
 ### Any agent, with `npx skills`
 
 [skills.sh](https://skills.sh) installs into `~/.agents/skills` (read by Codex and others) and
