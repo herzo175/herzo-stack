@@ -54,7 +54,7 @@ def test_dispatch_executes_same_corpus_and_skill_comparison(tmp_path, harness):
         "EVAL_RUNTIME": harness,
         "EVAL_MODEL": {
             "claude": "anthropic/claude-opus-5.5",
-            "codex": "openai/gpt-6.2-sol",
+            "codex": "openai/gpt-6.1-terra",
         }.get(harness, "qwen/qwen3.8-27b"),
         "EVAL_JUDGE_MODEL": "provider/judge",
         "SHARD_INDEX": "0",
@@ -95,14 +95,14 @@ def test_fixture_cannot_inject_native_agent_config(directory):
 @pytest.mark.parametrize(
     "harness,model",
     [
-        ("claude", "openai/gpt-6.2-sol"),
+        ("claude", "openai/gpt-6.1-terra"),
         ("codex", "anthropic/claude-opus-5.5"),
         ("claude", "z-ai/glm-5.3"),
         ("codex", "qwen/qwen3.8-27b"),
         ("pi", "anthropic/claude-opus-5.5"),
-        ("pi", "openai/gpt-6.2-sol"),
+        ("pi", "openai/gpt-6.1-terra"),
         ("opencode", "anthropic/claude-opus-5.5"),
-        ("opencode", "openai/gpt-6.2-sol"),
+        ("opencode", "openai/gpt-6.1-terra"),
     ],
 )
 def test_invalid_pairs_rejected_even_for_matrix(harness, model, monkeypatch):

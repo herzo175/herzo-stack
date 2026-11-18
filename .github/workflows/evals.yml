@@ -21,7 +21,7 @@ on:
           - deepseek/deepseek-v4.1-flash
           - z-ai/glm-5.3
           - qwen/qwen3.8-27b
-          - openai/gpt-6.2-sol
+          - openai/gpt-6.1-terra
           - anthropic/claude-opus-5.5
         default: deepseek/deepseek-v4.1-flash
   schedule:

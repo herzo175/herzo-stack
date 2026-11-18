@@ -29,7 +29,7 @@ not silently fall back to another model on an error.
 ```bash
 uv run --project evals herzo-evals \
   --runtime pi --kind checkpoint \
-  --model '<provider/agent-model>' --judge-model '<provider/judge-model>' \
+  --model qwen/qwen3.8-27b --judge-model openai/gpt-5-mini \
   --no-skill-baseline \
   --repeat 2 --concurrency 1 --output evals/results/first-comparison
 ```
@@ -59,7 +59,7 @@ code and tool results. They are not a pasted historical transcript.
 ```bash
 uv run --project evals herzo-evals \
   --runtime pi --kind compaction --include-held-out \
-  --model '<provider/agent-model>' --judge-model '<provider/judge-model>' \
+  --model qwen/qwen3.8-27b --judge-model openai/gpt-5-mini \
   --baseline-ref e45aa78eaec30be8c291989a766ba9153f0e7626 \
   --repeat 1 --output evals/results/compaction-pilot
 ```
@@ -115,10 +115,10 @@ an agent choosing the wrong implementation.
 
 - **harness:** Pi, OpenCode, Codex or Claude Code.
 - **model:** DeepSeek V4.1 Flash (`deepseek/deepseek-v4.1-flash`), GLM 5.3
-  (`z-ai/glm-5.3`), Qwen 3.8 27B (`qwen/qwen3.8-27b`), Sol
-  (`openai/gpt-6.2-sol`), or Opus (`anthropic/claude-opus-5.5`).
+  (`z-ai/glm-5.3`), Qwen 3.8 27B (`qwen/qwen3.8-27b`), GPT-6.1 Terra
+  (`openai/gpt-6.1-terra`), or Opus (`anthropic/claude-opus-5.5`).
 
-Choose DeepSeek, GLM or Qwen for Pi/OpenCode, Opus for Claude Code, and Sol for Codex.
+Choose DeepSeek, GLM or Qwen for Pi/OpenCode, Opus for Claude Code, and GPT-6.1 Terra for Codex.
 The workflow rejects incompatible selections
 before starting the paid matrix. GitHub's dropdowns cannot filter each other dynamically.
 
@@ -144,6 +144,9 @@ Recurring paid runs remain opt-in:
 Fork PRs get offline checks only. Model-funded runs use trusted refs and a read-only GitHub
 token; the agent container receives no repository write token or production cloud credentials.
 Limits include concurrency, episode timeout, bounded output, and a separate judge deadline.
+Codex exposes no native output-token override; its manifest records the requested cap as
+unenforced and its provider limits apply. Both arms still share the same Codex settings, wall
+deadline and byte budget. Other harnesses enforce the configured token cap.
 Reported usage is the runtime's observed agent usage; it excludes judge calls and may omit
 compaction usage. These bounds do not enforce a precise dollar spend: check OpenRouter billing
 after the pilot and configure a spending limit on the key. Docker cleanup runs on success, failure, and cancellation.

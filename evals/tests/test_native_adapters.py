@@ -1,6 +1,7 @@
 """Protocol checks use fake executables; they make no inference-quality claim."""
 
 import importlib.util
+import io
 import json
 import os
 import sys
@@ -98,6 +99,9 @@ assert os.environ['ANTHROPIC_AUTH_TOKEN']=='test-only'
 assert os.environ['ANTHROPIC_API_KEY']==''
 assert os.environ['ANTHROPIC_BASE_URL']=='https://openrouter.ai/api'
 assert os.environ['CLAUDE_CODE_MAX_OUTPUT_TOKENS']=='1024'
+assert os.environ['ANTHROPIC_DEFAULT_HAIKU_MODEL']=='anthropic/claude-opus-5.5'
+assert os.environ['CLAUDE_CODE_SUBAGENT_MODEL']=='anthropic/claude-opus-5.5'
+assert os.environ['CLAUDE_CODE_SUBAGENT_MODEL_FORCE']=='1'
 if sys.argv[-1]=='two': assert sys.argv[sys.argv.index('--resume')+1]=='session-fixture'
 print(json.dumps({'type':'system','subtype':'init','session_id':'session-fixture','skills':[]}))
 print(json.dumps({'type':'assistant','message':{'content':[
@@ -106,7 +110,7 @@ print(json.dumps({'type':'assistant','message':{'content':[
 print(json.dumps({'type':'result','session_id':'session-fixture','subtype':'success','is_error':False,'result':sys.argv[-1],'usage':{'input_tokens':5,'output_tokens':2},'total_cost_usd':0.01}))
 """,
     )
-    result = driver.claude_code(payload(), command)
+    result = driver.claude_code(payload(model="anthropic/claude-opus-5.5"), command)
     assert result["final_response"] == "two"
     assert result["usage"]["input"] == 10 and result["usage"]["cost_usd"] == 0.02
     trace = capsys.readouterr().out
@@ -153,3 +157,17 @@ for line in sys.stdin:
     assert "builtin" in capsys.readouterr().out
     with pytest.raises(driver.ProtocolError, match="inventory mismatch"):
         driver.codex_inventory([], os.environ, command)
+
+
+@pytest.mark.parametrize(
+    "runtime,adapter",
+    [("pi", "pi"), ("opencode", "opencode"), ("codex", "codex"), ("claude", "claude_code")],
+)
+def test_driver_dispatch_matches_public_runtime_names(runtime, adapter, monkeypatch, capsys):
+    calls = []
+    monkeypatch.setattr(driver, adapter, lambda data: calls.append(data) or driver.native_result())
+    monkeypatch.setattr(driver.subprocess, "run", lambda *args, **kwargs: None)
+    monkeypatch.setattr(sys, "stdin", io.StringIO(json.dumps(payload(runtime=runtime))))
+    driver.main()
+    assert calls[0]["runtime"] == runtime
+    assert json.loads(capsys.readouterr().out)["record"] == "result"

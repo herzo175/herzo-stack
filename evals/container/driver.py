@@ -553,6 +553,12 @@ def claude_code(payload, command=None):
         "ANTHROPIC_AUTH_TOKEN": os.environ.get("OPENROUTER_API_KEY", ""),
         "ANTHROPIC_API_KEY": "",
         "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC": "1",
+        "ANTHROPIC_DEFAULT_HAIKU_MODEL": payload["model"],
+        "ANTHROPIC_DEFAULT_SONNET_MODEL": payload["model"],
+        "ANTHROPIC_DEFAULT_OPUS_MODEL": payload["model"],
+        "ANTHROPIC_DEFAULT_FABLE_MODEL": payload["model"],
+        "CLAUDE_CODE_SUBAGENT_MODEL": payload["model"],
+        "CLAUDE_CODE_SUBAGENT_MODEL_FORCE": "1",
         "CLAUDE_CODE_MAX_OUTPUT_TOKENS": str(payload["max_output_tokens"]),
     }
     emit(
@@ -674,7 +680,7 @@ def main():
     subprocess.run(
         ["git", "commit", "--quiet", "--allow-empty", "-m", "Fixture starting state"], check=True
     )
-    adapters = {"pi": pi, "opencode": opencode, "codex": codex, "claude-code": claude_code}
+    adapters = {"pi": pi, "opencode": opencode, "codex": codex, "claude": claude_code}
     if payload["runtime"] not in adapters:
         raise ProtocolError(f"Unsupported runtime: {payload['runtime']}")
     result = adapters[payload["runtime"]](payload)
