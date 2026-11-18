@@ -290,3 +290,53 @@ def test_completeness_grader_rejects_mutating_its_source_witness(tmp_path):
         result.returncode != check.expected_exit
         for check, result in zip(scenario.checks, run_checks(scenario, tmp_path), strict=True)
     )
+
+
+@pytest.mark.parametrize(
+    "case_id,replacement",
+    [
+        (
+            "factory-nan-aware-ordered-parity",
+            {
+                "paths.py": """import math,struct
+
+def verify_paths(expected,actual):
+    def canonical(paths):
+        return [[None if math.isnan(p[2]) else tuple(p) for p in path] for path in paths]
+    if canonical(expected)!=canonical(actual):raise ValueError('coordinates_changed')
+
+def roundtrip_paths(paths):
+    source=[
+        [(float(x),float(y),float('nan') if m is None else float(m)) for x,y,m in path]
+        for path in paths
+    ]
+    decoded=[[struct.unpack('<ddd',struct.pack('<ddd',*p)) for p in path] for path in source]
+    verify_paths(source,decoded)
+    return decoded
+""",
+            },
+        ),
+        (
+            "factory-independent-completeness-witness",
+            {
+                "capture.py": """def verify_capture(source,result):
+    if result['rows']!=source:raise ValueError('incomplete')
+
+def collect(source):
+    rows=[dict(r) for r in source]
+    result={'rows':rows,'feature_count':len(rows),'source_count':len(source)}
+    verify_capture(source,result)
+    return result
+""",
+            },
+        ),
+    ],
+)
+def test_partial_fixes_cannot_pass_without_full_visible_contract(case_id, replacement, tmp_path):
+    scenario = next(s for s in SCENARIOS if s.id == case_id)
+    stage(tmp_path, scenario.files)
+    stage(tmp_path, replacement)
+    assert any(
+        result.returncode != check.expected_exit
+        for check, result in zip(scenario.checks, run_checks(scenario, tmp_path), strict=True)
+    )

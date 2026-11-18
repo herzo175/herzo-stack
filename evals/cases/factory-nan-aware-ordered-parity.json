@@ -21,6 +21,14 @@
         "-c",
         "import math\nfrom paths import roundtrip_paths,verify_paths\nsource=[[(1,2,None),(4,5,6)],[(8,9,float('nan')),(10,11,None)]]\nout=roundtrip_paths(source)\nassert math.isnan(out[0][0][2]) and math.isnan(out[1][0][2]) and math.isnan(out[1][1][2])\nassert source[0][0][2] is None\nverify_paths([[(1,2,float('nan'))]],[[(1,2,float('nan'))]])\nfor left,right in [([[(1,2,3)],[(4,5,6)]],[[(4,5,6)],[(1,2,3)]]),([[(1,2,3)]],[[(1,2,4)]]),([[(1,2,float('nan'))]],[[(1,2,0)]]),([[(1,2,3)]],[[(1,2,3),(1,2,3)]])]:\n try:verify_paths(left,right)\n except ValueError:pass\n else:raise AssertionError('Real mismatch accepted')\n"
       ]
+    },
+    {
+      "name": "missing-measures-preserve-finite-coordinates-and-order",
+      "command": [
+        "python3",
+        "-c",
+        "from paths import verify_paths\nexpected=[[(1,2,float('nan')),(3,4,float('nan'))]]\nfor actual in [[[(999,2,float('nan')),(3,4,float('nan'))]], [[(1,999,float('nan')),(3,4,float('nan'))]], [[(3,4,float('nan')),(1,2,float('nan'))]]]:\n try:verify_paths(expected,actual)\n except ValueError:pass\n else:raise AssertionError('Missing measure hid a finite coordinate or point-order change')\nverify_paths(expected,[[(1,2,float('nan')),(3,4,float('nan'))]])\n"
+      ]
     }
   ],
   "rubric": "The fix distinguishes missing-value equivalence from finite changes, order and multiplicity. Show a meaningful failing-before regression; do not silence the guard or make all NaNs equal to arbitrary numbers.",
