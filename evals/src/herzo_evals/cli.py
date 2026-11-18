@@ -10,7 +10,12 @@ import tempfile
 from pathlib import Path
 
 from herzo_evals.corpus import coverage, load_catalogue
-from herzo_evals.models import Settings, validate_model_pair
+from herzo_evals.models import (
+    DEFAULT_JUDGE_MODEL,
+    Settings,
+    validate_judge_model,
+    validate_model_pair,
+)
 from herzo_evals.runner import load_scenarios, paired_experiment, run_experiment
 from herzo_evals.selection import matrix_for, shard_cases
 
@@ -72,7 +77,9 @@ def parser() -> argparse.ArgumentParser:
     result.add_argument("--include-held-out", action="store_true")
     result.add_argument("--runtime", choices=["pi", "opencode", "codex", "claude"], default="pi")
     result.add_argument("--model", help="Explicit OpenRouter model ID, e.g. provider/model")
-    result.add_argument("--judge-model", help="Explicit OpenRouter judge model ID")
+    result.add_argument(
+        "--judge-model", default=DEFAULT_JUDGE_MODEL, help="OpenRouter judge model ID"
+    )
     result.add_argument("--image", default="herzo-evals:local")
     result.add_argument("--skills-root", type=Path, default=REPO / "skills")
     result.add_argument(
@@ -96,6 +103,7 @@ def main() -> None:
     if args.model:
         try:
             validate_model_pair(args.runtime, args.model)
+            validate_judge_model(args.model, args.judge_model)
         except ValueError as exc:
             raise SystemExit(str(exc)) from exc
     scenarios = load_scenarios(args.cases, args.case, args.include_held_out)
@@ -129,8 +137,8 @@ def main() -> None:
         return
     if not scenarios:
         raise SystemExit("No scenarios selected")
-    if not args.model or not args.judge_model:
-        raise SystemExit("Specify --model and --judge-model OpenRouter IDs")
+    if not args.model:
+        raise SystemExit("Specify --model as an OpenRouter ID")
     if sum(map(bool, [args.baseline_ref, args.no_skill_baseline, args.candidate_only])) != 1:
         raise SystemExit("Choose --baseline-ref, --no-skill-baseline, or --candidate-only")
     if args.runtime != "pi" and any(case.kind == "compaction" for case in scenarios):

@@ -8,7 +8,7 @@ import subprocess
 import pytest
 
 from herzo_evals.cli import REPO, parser
-from herzo_evals.models import Scenario, Settings
+from herzo_evals.models import DEFAULT_JUDGE_MODEL, Scenario, Settings
 from herzo_evals.runner import load_scenarios
 from herzo_evals.selection import shard_cases
 
@@ -27,11 +27,12 @@ def run_step(name):
     return "\n".join(result)
 
 
-def test_dispatch_has_only_harness_and_model():
+def test_dispatch_has_harness_agent_and_judge_models():
     block = WORKFLOW.read_text().split("    inputs:\n", 1)[1].split("  schedule:", 1)[0]
-    assert re.findall(r"^      (\w+):", block, re.MULTILINE) == ["harness", "model"]
+    assert re.findall(r"^      (\w+):", block, re.MULTILINE) == ["harness", "model", "judge_model"]
     assert "options: [pi, opencode, codex, claude]" in block
     assert "inputs.harness || 'pi'" in WORKFLOW.read_text()
+    assert f"inputs.judge_model || '{DEFAULT_JUDGE_MODEL}'" in WORKFLOW.read_text()
 
 
 @pytest.mark.parametrize("harness", ["pi", "opencode", "codex", "claude"])
@@ -117,3 +118,42 @@ def test_invalid_pairs_rejected_even_for_matrix(harness, model, monkeypatch):
         main()
     with pytest.raises(ValueError, match="requires a"):
         Settings(runtime=harness, model=model, judge_model="provider/judge", skills_root=None)
+
+
+@pytest.mark.parametrize(
+    "judge",
+    [
+        "google/gemini-4-hydrogen",
+        "openai/gpt-6-luna",
+        "anthropic/claude-haiku-5.5",
+        "minimax/minimax-m3.1-flash",
+    ],
+)
+def test_judge_choices_are_separate_from_agent_choices(judge):
+    block = WORKFLOW.read_text().split("      judge_model:\n", 1)[1].split("  schedule:", 1)[0]
+    agents = WORKFLOW.read_text().split("      model:\n", 1)[1].split("      judge_model:", 1)[0]
+    assert f"- {judge}" in block
+    assert f"- {judge}" not in agents
+    assert f"default: {DEFAULT_JUDGE_MODEL}" in block
+
+
+def test_cli_and_settings_default_to_gemini():
+    assert parser().parse_args([]).judge_model == DEFAULT_JUDGE_MODEL
+    assert Settings(runtime="pi", model="qwen/qwen3.8-27b", skills_root=None).judge_model == (
+        DEFAULT_JUDGE_MODEL
+    )
+
+
+def test_self_judging_rejected_before_matrix_and_by_settings(monkeypatch):
+    import sys
+
+    from herzo_evals.cli import main
+
+    model = "qwen/qwen3.8-27b"
+    monkeypatch.setattr(
+        sys, "argv", ["herzo-evals", "--matrix", "--model", model, "--judge-model", model]
+    )
+    with pytest.raises(SystemExit, match="Judge model must differ"):
+        main()
+    with pytest.raises(ValueError, match="Judge model must differ"):
+        Settings(runtime="pi", model=model, judge_model=model, skills_root=None)

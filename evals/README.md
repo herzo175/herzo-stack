@@ -22,14 +22,15 @@ and transcripts. A local ignored `.secrets/openrouter.env` can hold `OPENROUTER_
 load only that value using your secret manager or environment loader. Use `uv run --env-file .secrets/openrouter.env --project evals …` to load it without
 executing shell code. The runner does not execute or shell-source dotenv files. GitHub uses the Actions secret of the same name.
 
-Choose explicit OpenRouter model IDs for both roles. The judge can be different from the agent;
-both use OpenRouter. Use the same agent model when comparing skill versions. The suite does
-not silently fall back to another model on an error.
+Choose an explicit OpenRouter agent model ID. The judge defaults to Gemini 4 Hydrogen
+(`google/gemini-4-hydrogen`); override it with `--judge-model`. Both use OpenRouter, and the
+judge must differ from the agent model. Use the same agent model when comparing skill versions.
+The suite does not silently fall back to another model on an error.
 
 ```bash
 uv run --project evals herzo-evals \
   --runtime pi --kind checkpoint \
-  --model qwen/qwen3.8-27b --judge-model openai/gpt-5-mini \
+  --model qwen/qwen3.8-27b \
   --no-skill-baseline \
   --repeat 2 --concurrency 1 --output evals/results/first-comparison
 ```
@@ -59,7 +60,7 @@ code and tool results. They are not a pasted historical transcript.
 ```bash
 uv run --project evals herzo-evals \
   --runtime pi --kind compaction --include-held-out \
-  --model qwen/qwen3.8-27b --judge-model openai/gpt-5-mini \
+  --model qwen/qwen3.8-27b \
   --baseline-ref e45aa78eaec30be8c291989a766ba9153f0e7626 \
   --repeat 1 --output evals/results/compaction-pilot
 ```
@@ -111,12 +112,14 @@ an agent choosing the wrong implementation.
 ## GitHub Actions
 
 `.github/workflows/evals.yml` runs offline checks for relevant PRs and main changes. Use
-**Actions → Skill evals → Run workflow** and select just:
+**Actions → Skill evals → Run workflow** and select:
 
 - **harness:** Pi, OpenCode, Codex or Claude Code.
 - **model:** DeepSeek V4.1 Flash (`deepseek/deepseek-v4.1-flash`), GLM 5.3
   (`z-ai/glm-5.3`), Qwen 3.8 27B (`qwen/qwen3.8-27b`), GPT-6.1 Terra
   (`openai/gpt-6.1-terra`), or Opus (`anthropic/claude-opus-5.5`).
+- **judge_model:** Gemini 4 Hydrogen (default), GPT-6 Luna, Claude Haiku 5.5, or
+  MiniMax M3.1 Flash. These choices are separate from the tested agent models.
 
 Choose DeepSeek, GLM or Qwen for Pi/OpenCode, Opus for Claude Code, and GPT-6.1 Terra for Codex.
 The workflow rejects incompatible selections
@@ -128,8 +131,10 @@ per arm. The three forced-compaction cases stay in the advanced Pi CLI suite, ke
 workflow's corpus identical across harnesses. Repeatedly tuning against held-out results makes
 those cases development data; add new held-out cases before claiming generalization.
 
-The judge is fixed by repository variable `EVAL_JUDGE_MODEL` (default `openai/gpt-5-mini`),
-independent of the agent model. Shards run at most two jobs concurrently. Full evidence is kept
+The selected judge is identical across both arms. Manual runs use the `judge_model` selector;
+automatic runs default to Gemini 4 Hydrogen.
+The CLI also rejects using the same model as both agent and judge. Shards run at most two jobs
+concurrently. Full evidence is kept
 as separate shard artifacts for seven days; job summaries show results for both arms. One
 trial per arm is an initial comparison, not a statistically reliable ranking; use CLI `--repeat`
 for repeated trials before making performance claims.
@@ -138,8 +143,8 @@ Recurring paid runs remain opt-in:
 
 - `EVAL_PR_RUNS_ENABLED=true` enables the same comparison for same-repository skill PRs.
 - `EVAL_SCHEDULE_ENABLED=true` enables the weekly comparison.
-- Both use Pi with DeepSeek V4.1 Flash, the same 50-case corpus, optional
-  `EVAL_JUDGE_MODEL`, and the `OPENROUTER_API_KEY` secret.
+- Both use Pi with DeepSeek V4.1 Flash, Gemini 4 Hydrogen as judge, the same 50-case corpus,
+  and the `OPENROUTER_API_KEY` secret.
 
 Fork PRs get offline checks only. Model-funded runs use trusted refs and a read-only GitHub
 token; the agent container receives no repository write token or production cloud credentials.

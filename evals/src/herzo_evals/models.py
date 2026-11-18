@@ -71,6 +71,8 @@ class Scenario(StrictModel):
         return self
 
 
+DEFAULT_JUDGE_MODEL = "google/gemini-4-hydrogen"
+
 OPEN_MODELS = frozenset({"deepseek/deepseek-v4.1-flash", "z-ai/glm-5.3", "qwen/qwen3.8-27b"})
 
 
@@ -84,10 +86,15 @@ def validate_model_pair(runtime: str, model: str) -> None:
         )
 
 
+def validate_judge_model(model: str, judge_model: str) -> None:
+    if model == judge_model:
+        raise ValueError("Judge model must differ from the agent model")
+
+
 class Settings(StrictModel):
     runtime: Literal["pi", "opencode", "codex", "claude"]
     model: str = Field(min_length=3)
-    judge_model: str = Field(min_length=3)
+    judge_model: str = Field(default=DEFAULT_JUDGE_MODEL, min_length=3)
     skills_root: Path | None
     image: str = "herzo-evals:local"
     timeout_seconds: int = Field(default=600, ge=1, le=3600)
@@ -97,6 +104,7 @@ class Settings(StrictModel):
     @model_validator(mode="after")
     def supported_model_pair(self) -> "Settings":
         validate_model_pair(self.runtime, self.model)
+        validate_judge_model(self.model, self.judge_model)
         return self
 
 
