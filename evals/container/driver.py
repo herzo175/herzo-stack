@@ -225,26 +225,34 @@ def pi(payload, command=None):
         stop(process)
 
 
+def opencode_inventory(inventory, selected):
+    builtins = sorted(item["name"] for item in inventory if item.get("location") == "<built-in>")
+    discovered = sorted(item["name"] for item in inventory if item.get("location") != "<built-in>")
+    if discovered != sorted(selected):
+        raise ProtocolError(f"OpenCode skill inventory mismatch: {discovered}")
+    return discovered, builtins
+
+
 def opencode(payload, command=None):
     if payload.get("compact_after_turn") is not None:
         raise ProtocolError("OpenCode manual compaction is not supported by this adapter")
     home = Path.home() / ".config" / "opencode"
     home.mkdir(parents=True, exist_ok=True)
-    # 1.19.x uses provider/model configuration and native global skill discovery.
-    (home / "opencode.json").write_text(
-        json.dumps(
-            {
-                "autoupdate": False,
-                "permission": "allow",
-                "provider": {
-                    "openrouter": {
-                        "models": {
-                            payload["model"]: {"limit": {"output": payload["max_output_tokens"]}}
-                        }
-                    }
-                },
-            }
-        )
+    (home / "opencode.json").write_text(json.dumps({"autoupdate": False, "permission": "allow"}))
+    # Native v1.19.6 request preparation clamps catalog output limits with this runtime flag.
+    # Preserve the catalog's context size instead of constructing a partial replacement model.
+    native_env = {
+        **os.environ,
+        "OPENCODE_EXPERIMENTAL_OUTPUT_TOKEN_MAX": str(payload["max_output_tokens"]),
+    }
+    emit(
+        "event",
+        {
+            "type": "output_token_policy",
+            "runtime": "opencode",
+            "max_output_tokens": payload["max_output_tokens"],
+            "source": "OPENCODE_EXPERIMENTAL_OUTPUT_TOKEN_MAX",
+        },
     )
     skills = home / "skills"
     skills.mkdir(exist_ok=True)
@@ -254,10 +262,8 @@ def opencode(payload, command=None):
         inventory = subprocess.run(
             ["opencode", "debug", "skill", "--pure"], stdout=subprocess.PIPE, text=True, check=True
         )
-        discovered = sorted(item["name"] for item in json.loads(inventory.stdout))
-        if discovered != sorted(payload["skills"]):
-            raise ProtocolError(f"OpenCode skill inventory mismatch: {discovered}")
-        emit("event", {"type": "skill_inventory", "names": discovered})
+        discovered, builtins = opencode_inventory(json.loads(inventory.stdout), payload["skills"])
+        emit("event", {"type": "skill_inventory", "names": discovered, "builtins": builtins})
     session = None
     result = {
         "final_response": "",
@@ -283,7 +289,7 @@ def opencode(payload, command=None):
         if session:
             args.extend(["--session", session])
         args.extend(["--", prompt])
-        process = subprocess.Popen(args, stdout=subprocess.PIPE, text=True)
+        process = subprocess.Popen(args, stdout=subprocess.PIPE, text=True, env=native_env)
         text = []
         try:
             while line := process.stdout.readline():

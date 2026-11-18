@@ -337,3 +337,33 @@ for line in sys.stdin:
     )
     with pytest.raises(driver.ProtocolError, match="Compaction did not replace"):
         driver.pi(payload(compact_after_turn=1), command)
+
+
+def test_opencode_caps_tokens_without_replacing_catalog_context(tmp_path, monkeypatch):
+    monkeypatch.setenv("HOME", str(tmp_path))
+    command = script(
+        tmp_path,
+        """import json,os,sys
+from pathlib import Path
+config=json.loads((Path.home()/'.config/opencode/opencode.json').read_text())
+assert 'provider' not in config, 'Do not replace model context metadata to cap generation'
+assert os.environ['OPENCODE_EXPERIMENTAL_OUTPUT_TOKEN_MAX']=='1024'
+print(json.dumps({'type':'text','sessionID':'ses_caps','part':{'text':'bounded'}}))
+""",
+    )
+    result = driver.opencode(payload(prompts=["one"]), command)
+    assert result["final_response"] == "bounded"
+
+
+def test_opencode_builtin_skills_are_recorded_but_external_skills_are_exact():
+    inventory = [
+        {"name": "customize-opencode", "location": "<built-in>"},
+        {"name": "debugging", "location": "/skills/debugging/SKILL.md"},
+    ]
+    assert driver.opencode_inventory(inventory, ["debugging"]) == (
+        ["debugging"],
+        ["customize-opencode"],
+    )
+    inventory.append({"name": "unexpected", "location": "/home/node/private/SKILL.md"})
+    with pytest.raises(driver.ProtocolError, match="inventory mismatch"):
+        driver.opencode_inventory(inventory, ["debugging"])
