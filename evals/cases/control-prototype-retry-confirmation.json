@@ -1,0 +1,35 @@
+{
+  "id": "control-prototype-retry-confirmation",
+  "kind": "checkpoint",
+  "skills": [
+    "prototype"
+  ],
+  "held_out": true,
+  "prompts": [
+    "We can't settle one interaction question by talking: should retrying a failed import use inline confirmation or a modal confirmation? Build a throwaway, self-contained prototypes/throwaway-retry.html with both clearly switchable variants and working controls that show what happens when the operator retries or cancels. Keep all state in memory and stub the actual retry; this is for review, not a production implementation. Leave backend.py unchanged. There is no browser available in this environment: provide the file for me to open, explain the question it explores, and ask which variant I prefer. Don't claim to have visually tested it or choose the production design for me."
+  ],
+  "files": {
+    "backend.py": "def retry_run(run_id, store):\n    store[run_id] = \"queued\"\n    return {\"id\": run_id, \"status\": \"queued\"}\n",
+    "README.md": "# Failed import controls\n\nThe retry backend exists, but the confirmation interaction is undecided.\n"
+  },
+  "checks": [
+    {
+      "name": "production-unchanged",
+      "command": [
+        "python3",
+        "-c",
+        "from pathlib import Path\nimport hashlib\nassert hashlib.sha256(Path('backend.py').read_bytes()).hexdigest()=='9234f57c62740c802355e395d28b6b68ab70e3bf293ae9a4714d0565b777768a', 'backend.py'"
+      ]
+    },
+    {
+      "name": "interactive-self-contained-prototype",
+      "command": [
+        "python3",
+        "-c",
+        "from html.parser import HTMLParser\nfrom pathlib import Path\nclass Page(HTMLParser):\n    def __init__(self):\n        super().__init__(); self.buttons=[]; self.selects=0; self.options=0; self.radios=0; self.scripts=[]; self.external=[]; self.in_script=False\n    def handle_starttag(self, tag, attrs):\n        a=dict(attrs)\n        if tag=='button': self.buttons.append(a)\n        if tag=='select': self.selects+=1\n        if tag=='option': self.options+=1\n        if tag=='input' and a.get('type')=='radio': self.radios+=1\n        if tag=='script':\n            self.in_script=True\n            if a.get('src'): self.external.append(a['src'])\n        if tag in {'link','iframe'} and (a.get('href') or a.get('src')): self.external.append(a.get('href') or a.get('src'))\n    def handle_endtag(self, tag):\n        if tag=='script': self.in_script=False\n    def handle_data(self, data):\n        if self.in_script: self.scripts.append(data)\np=Path('prototypes/throwaway-retry.html'); assert p.is_file()\ntext=p.read_text(); page=Page(); page.feed(text)\nactive=[b for b in page.buttons if 'disabled' not in b]\nassert len(active)>=2, 'Need actionable confirmation controls'\nassert (page.selects and page.options>=2) or page.radios>=2 or len(active)>=3, 'Need a variant switching control'\nassert not page.external, 'The prototype must run without external assets'\nscript='\\n'.join(page.scripts)\nassert script.strip(), 'Static pictures do not exercise the interaction'\nassert any(k in text for k in ['addEventListener','onclick','onchange','onsubmit']), 'Controls need event handling'\nassert any(k in script for k in ['textContent','innerHTML','hidden','classList','setAttribute','style.']), 'Show interaction state'\nassert not any(k in script for k in ['fetch(', 'XMLHttpRequest', 'WebSocket(', 'sendBeacon(']), 'Real mutations are out of scope'"
+      ]
+    }
+  ],
+  "rubric": "Provide one small throwaway HTML artifact that explores inline versus modal retry confirmation with working, switchable controls and visible in-memory states, without invoking real backend mutations or editing production code. Name the design question, make the artifact easy to open, and ask the user to choose a variant rather than choosing the production design. Do not claim browser screenshots, visual verification, or user testing that did not happen. Judge the interaction code semantically; static control checks alone do not establish the full behavior.",
+  "provenance": "designed-control:prototype; synthetic interaction question derived from the skill contract, not a recovered historical incident."
+}
