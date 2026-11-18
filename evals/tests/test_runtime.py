@@ -1,7 +1,9 @@
 import asyncio
 import importlib.util
+import io
 import json
 import os
+import subprocess
 import sys
 from pathlib import Path
 
@@ -263,3 +265,31 @@ async def test_missing_key_never_uses_host_agent(scenario, settings, tmp_path, m
     monkeypatch.delenv("OPENROUTER_API_KEY", raising=False)
     result = await runtime.execute(scenario, settings, tmp_path)
     assert result.status == "infrastructure_error" and "OPENROUTER_API_KEY" in result.error
+
+
+async def test_cleanup_failure_is_reported(monkeypatch):
+    async def fake_capture(*args, **kwargs):
+        return 1, b"", b"daemon unavailable"
+
+    monkeypatch.setattr(runtime, "capture", fake_capture)
+    with pytest.raises(runtime.RuntimeFailure, match="Could not confirm sandbox cleanup"):
+        await runtime.remove_container("test-container")
+
+
+def test_driver_seeds_git_before_agent_runs(tmp_path, monkeypatch, capsys):
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / "app.py").write_text("print('fixture')\n")
+    monkeypatch.setattr(sys, "stdin", io.StringIO(json.dumps({"runtime": "pi"})))
+
+    def fake_pi(payload):
+        commit = subprocess.check_output(["git", "log", "-1", "--format=%s"], text=True)
+        assert commit.strip() == "Fixture starting state"
+        assert subprocess.check_output(["git", "status", "--porcelain"], text=True) == ""
+        assert subprocess.check_output(["git", "config", "user.email"], text=True).strip() == (
+            "eval@example.invalid"
+        )
+        return {"final_response": "started after seed"}
+
+    monkeypatch.setattr(driver, "pi", fake_pi)
+    driver.main()
+    assert "started after seed" in capsys.readouterr().out

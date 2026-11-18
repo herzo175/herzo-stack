@@ -94,7 +94,7 @@ async def capture(
 async def remove_container(name: str) -> None:
     """A stopped Docker client alone does not stop its container."""
     try:
-        await asyncio.wait_for(
+        code, _, stderr = await asyncio.wait_for(
             capture(
                 ["docker", "rm", "--force", name],
                 env=docker_environment(agent=False),
@@ -102,9 +102,12 @@ async def remove_container(name: str) -> None:
             ),
             timeout=15,
         )
-    except (OSError, TimeoutError, OutputLimit):
-        # Raised by the main operation if the daemon is unavailable; never mask cancellation.
-        pass
+        if code and b"No such container" not in stderr:
+            raise RuntimeFailure(
+                "Could not confirm sandbox cleanup: " + stderr.decode(errors="replace")[-1000:]
+            )
+    except (OSError, TimeoutError, OutputLimit) as exc:
+        raise RuntimeFailure("Could not confirm sandbox cleanup") from exc
 
 
 def stage_skills(source: Path | None, destination: Path, names: list[str]) -> list[str]:
