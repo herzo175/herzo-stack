@@ -1,0 +1,28 @@
+{
+  "id": "codex-cohesive-module-boundaries",
+  "kind": "checkpoint",
+  "skills": [
+    "plan",
+    "simplify-diff"
+  ],
+  "prompts": [
+    "Reorganize this flat ingestion script into a cohesive ingest package. Separate real parsing/validation and output-storage responsibilities rather than creating one shared catch-all module or many forwarding-only files. Replace the old pipeline.py import with `from ingest import load, write` in cli.py; there are no other consumers of pipeline.py. Preserve load(path) and write(rows,path) behavior. Use only the standard library."
+  ],
+  "files": {
+    "pipeline.py": "import csv,json\nfrom pathlib import Path\ndef load(path):\n    with open(path,newline='') as f:\n        rows=list(csv.DictReader(f))\n    clean=[]\n    for r in rows:\n        amount=int(r['amount'])\n        if amount<0: raise ValueError('Negative amount')\n        clean.append({'name':r['name'].strip(),'amount':amount})\n    return sorted(clean,key=lambda r:r['name'])\ndef write(rows,path):\n    Path(path).write_text(json.dumps(rows))\n",
+    "cli.py": "from pipeline import load,write\nimport sys\nwrite(load(sys.argv[1]),sys.argv[2])\n"
+  },
+  "checks": [
+    {
+      "name": "ingest-contract-and-caller",
+      "command": [
+        "python3",
+        "-c",
+        "import json,subprocess,tempfile\nfrom pathlib import Path\nfrom ingest import load,write\nwith tempfile.TemporaryDirectory() as d:\n src=Path(d)/'in.csv';dest=Path(d)/'out.json';src.write_text('name,amount\\n B ,2\\nA,1\\n')\n expected=[{'name':'A','amount':1},{'name':'B','amount':2}]\n assert load(src)==expected\n write(expected,dest);assert json.loads(dest.read_text())==expected\n p=subprocess.run(['python3','cli.py',str(src),str(dest)],capture_output=True,text=True);assert p.returncode==0,p.stderr\n assert json.loads(dest.read_text())==expected\n src.write_text('name,amount\\nA,-1\\n')\n try:load(src)\n except ValueError:pass\n else:raise AssertionError('Negative amount accepted')\n"
+      ]
+    }
+  ],
+  "rubric": "Use responsibility-based module boundaries, update every actual caller, and remove the superseded module because no consumer needs it. A named package facade is legitimate; forwarding-only compatibility chains and empty fragmentation are not. Preserve validation and I/O behavior; do not optimize for arbitrary file counts.",
+  "provenance": "codex-11-cohesive-nested-modules-over-one-shared-dump; sanitized incident reconstruction; no historical pre-error workspace recovered.",
+  "held_out": false
+}

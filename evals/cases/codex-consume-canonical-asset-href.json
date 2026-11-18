@@ -1,0 +1,30 @@
+{
+  "id": "codex-consume-canonical-asset-href",
+  "kind": "episode",
+  "skills": [
+    "how-why",
+    "simplify-diff"
+  ],
+  "prompts": [
+    "Fix publisher.build_item(root, filename) so it populates assets.data.href by joining the supplied root with a URL-encoded filename. The filename is a single path component. Use only local values; do not make network requests.",
+    "Now fix client.resolve_asset(item, key=\"data\") to use the exact href in the item instead of reconstructing a bucket, collection, or version URL. Missing asset keys must raise KeyError.",
+    "Verify that caller-supplied hrefs retain encoded path components and query strings unchanged, even when the item ID is misleading or the asset lives at a different root. Keep publisher and client responsibilities separate."
+  ],
+  "files": {
+    "publisher.py": "def build_item(root,filename):\n    return {'assets':{'data':{'href':'https://old.example.invalid/'+filename}}}\n",
+    "client.py": "def resolve_asset(item,key='data'):\n    return 'https://guessed.example.invalid/'+item.get('id','missing')+'.json'\n"
+  },
+  "checks": [
+    {
+      "name": "exact-authoritative-url",
+      "command": [
+        "python3",
+        "-c",
+        "from publisher import build_item\nfrom client import resolve_asset\na=build_item('https://assets.example.invalid/base/','roads a.geojson')\nassert a['assets']['data']['href']=='https://assets.example.invalid/base/roads%20a.geojson'\nfor href in ['https://elsewhere.example.invalid/v2/a%2Fb.json?signature=opaque&x=2','https://cdn.example.invalid/root/special%20name.parquet']:\n item={'id':'misleading-id','assets':{'data':{'href':href}}}; assert resolve_asset(item)==href\ntry:resolve_asset({'assets':{}},'missing')\nexcept KeyError:pass\nelse:raise AssertionError('Missing canonical asset silently guessed')\n"
+      ]
+    }
+  ],
+  "rubric": "Trace and repair both sides at the owner: publisher sets canonical href, consumer reads it unchanged. Preserve encoded path/query components and explicit missing-asset behavior. Do not replace canonical metadata with another configurable URL-reconstruction layer.",
+  "provenance": "codex-16-use-authoritative-asset-url-instead-of-reconstruction; sanitized incident reconstruction; no historical pre-error workspace recovered. The staged publisher/client follow-ups are designed extensions.",
+  "held_out": true
+}
