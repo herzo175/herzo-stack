@@ -1,0 +1,195 @@
+[
+  {
+    "case_id": "factory-listing-count-discrepancy",
+    "family": "source-authority",
+    "source_ids": [
+      "factory-source-counts-vs-payload"
+    ],
+    "origin": "incident_reconstruction",
+    "skills": [
+      "debugging",
+      "research",
+      "measure"
+    ],
+    "scope": "general",
+    "held_out": false,
+    "coverage": "Use the verified publisher payload as the population, retain every valid row, and record the advisory listing discrepancy. Preserve checksum and required-row validation. The ordered trace should show investigation, not a blanket removal of all gates."
+  },
+  {
+    "case_id": "factory-retain-additive-fields",
+    "family": "lossless-input-contract",
+    "source_ids": [
+      "factory-retain-producer-extra-field"
+    ],
+    "origin": "incident_reconstruction",
+    "skills": [
+      "debugging",
+      "tdd",
+      "blast-radius"
+    ],
+    "scope": "general",
+    "held_out": false,
+    "coverage": "Retain arbitrary additive publisher fields without weakening the required id/name contract or mutating inputs. Later metadata must not erase the earlier release_note requirement."
+  },
+  {
+    "case_id": "factory-nan-aware-ordered-parity",
+    "family": "equivalence-edge-values",
+    "source_ids": [
+      "factory-nan-aware-parity"
+    ],
+    "origin": "incident_reconstruction",
+    "skills": [
+      "debugging",
+      "tdd",
+      "blast-radius"
+    ],
+    "scope": "general",
+    "held_out": false,
+    "coverage": "The fix distinguishes missing-value equivalence from finite changes, order and multiplicity. Show a meaningful failing-before regression; do not silence the guard or make all NaNs equal to arbitrary numbers."
+  },
+  {
+    "case_id": "factory-preserve-wire-variant",
+    "family": "serialization-compatibility",
+    "source_ids": [
+      "factory-wire-variant-contract"
+    ],
+    "origin": "incident_reconstruction",
+    "skills": [
+      "blast-radius",
+      "tdd",
+      "measure"
+    ],
+    "scope": "general",
+    "held_out": true,
+    "coverage": "Reconstructed from an exact-head independent review finding; this audit did not independently isolate its original native byte probe."
+  },
+  {
+    "case_id": "factory-preserve-refusal-contract",
+    "family": "refactor-error-semantics",
+    "source_ids": [
+      "factory-invalid-input-error-contract"
+    ],
+    "origin": "incident_reconstruction",
+    "skills": [
+      "blast-radius",
+      "simplify-diff",
+      "tdd"
+    ],
+    "scope": "general",
+    "held_out": false,
+    "coverage": "Keep both strict adapter errors and the separate repair consumer contract. Review invalid inputs as well as valid output; do not claim behavior parity after silently repairing formerly rejected data."
+  },
+  {
+    "case_id": "factory-attribute-invalid-text",
+    "family": "encoding-and-failure-evidence",
+    "source_ids": [
+      "factory-invalid-text-attribution"
+    ],
+    "origin": "incident_reconstruction",
+    "skills": [
+      "debugging",
+      "research",
+      "tdd",
+      "deslop"
+    ],
+    "scope": "general",
+    "held_out": false,
+    "coverage": "Prove behavior through the strict writer. Preserve original bytes in an attributed failure and avoid replacement/ignore-based data loss. Documentation must describe supported behavior, not an impossible byte-preservation claim."
+  },
+  {
+    "case_id": "factory-test-derived-json-rule",
+    "family": "test-derived-output",
+    "source_ids": [
+      "factory-json-rule-consumer"
+    ],
+    "origin": "incident_reconstruction",
+    "skills": [
+      "research",
+      "tdd",
+      "blast-radius"
+    ],
+    "scope": "general",
+    "held_out": false,
+    "coverage": "Exercise the derived value using the shared extraction engine and input that contains the field. A successful collection or tests on a fixture without organizations do not establish this rule works. Preserve documented DSL and missing-field semantics."
+  },
+  {
+    "case_id": "factory-exercise-framework-entrypoint",
+    "family": "framework-seam-testing",
+    "source_ids": [
+      "factory-real-scheduler-entrypoint"
+    ],
+    "origin": "incident_reconstruction",
+    "skills": [
+      "debugging",
+      "tdd",
+      "research"
+    ],
+    "scope": "general",
+    "held_out": false,
+    "coverage": "Reproduce and test through the actual public entrypoint. Fix the callback rather than modifying the pinned framework to accept a new undocumented return shape. Verify both enabled and disabled paths; green helper-only tests are insufficient."
+  },
+  {
+    "case_id": "factory-find-actual-executor-setting",
+    "family": "execution-location-diagnosis",
+    "source_ids": [
+      "factory-read-environment-at-executor"
+    ],
+    "origin": "incident_reconstruction",
+    "skills": [
+      "research",
+      "debugging",
+      "how-why"
+    ],
+    "scope": "general",
+    "held_out": true,
+    "coverage": "Ground the fix and explanation in the actual delegation path. Do not set both environments or prescribe a coordinator restart based on the wrong mechanism. Preserve unrelated configuration and nonmutation."
+  },
+  {
+    "case_id": "factory-independent-completeness-witness",
+    "family": "independent-checks",
+    "source_ids": [
+      "factory-completeness-independent-witness"
+    ],
+    "origin": "incident_reconstruction",
+    "skills": [
+      "tdd",
+      "measure",
+      "blast-radius"
+    ],
+    "scope": "general",
+    "held_out": true,
+    "coverage": "Reconstructed from independent-review findings about self-derived completeness aliases; no claim the auditor reran the historical native probe."
+  },
+  {
+    "case_id": "factory-hash-actual-evidence-bytes",
+    "family": "measurement-value-integrity",
+    "source_ids": [
+      "factory-evidence-digest-is-bytes"
+    ],
+    "origin": "incident_reconstruction",
+    "skills": [
+      "measure",
+      "debugging",
+      "tdd"
+    ],
+    "scope": "general",
+    "held_out": false,
+    "coverage": "Reconstructed from an independent-review observation of a mispopulated digest field; original evidence script was not rerun by this auditor."
+  },
+  {
+    "case_id": "factory-propagate-failing-check-exit",
+    "family": "command-outcome-semantics",
+    "source_ids": [
+      "factory-zero-exit-is-not-passing-test"
+    ],
+    "origin": "incident_reconstruction",
+    "skills": [
+      "debugging",
+      "tdd",
+      "measure"
+    ],
+    "scope": "general",
+    "held_out": false,
+    "coverage": "Reconstructs a positive reviewer behavior: actual tool output had a traceback followed by EXIT=0, and the reviewer still identified the failure."
+  }
+]

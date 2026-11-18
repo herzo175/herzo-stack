@@ -1,0 +1,29 @@
+{
+  "id": "factory-nan-aware-ordered-parity",
+  "kind": "checkpoint",
+  "skills": [
+    "debugging",
+    "tdd",
+    "blast-radius"
+  ],
+  "prompts": [
+    "roundtrip_paths rejects valid paths containing missing measures. Reproduce it and fix the parity guard. Keep the documented coordinate order, multiplicity, and mismatch refusals; a multiset comparison is not enough."
+  ],
+  "files": {
+    "paths.py": "import math,struct\nfrom collections import Counter\n\ndef verify_paths(expected, actual):\n    left=[tuple(tuple(p) for p in path) for path in expected]\n    right=[tuple(tuple(p) for p in path) for path in actual]\n    if Counter(left)!=Counter(right):\n        raise ValueError('coordinates_changed')\n\ndef roundtrip_paths(paths):\n    source=[[(float(x),float(y),float('nan') if m is None else float(m)) for x,y,m in path] for path in paths]\n    decoded=[[struct.unpack('<ddd',struct.pack('<ddd',*p)) for p in path] for path in source]\n    verify_paths(source,decoded)\n    return decoded\n",
+    "README.md": "Each point is (x,y,measure). None encodes as NaN, and two NaN measures are semantically the same missing value. verify_paths(expected,actual) must raise ValueError for any finite-coordinate change, changed path/point order, or changed multiplicity. NaN-aware equality must not make a missing measure equal to a finite number. roundtrip_paths returns decoded paths and leaves input unchanged.\n"
+  },
+  "checks": [
+    {
+      "name": "missing-measures-and-real-mismatches",
+      "command": [
+        "python3",
+        "-c",
+        "import math\nfrom paths import roundtrip_paths,verify_paths\nsource=[[(1,2,None),(4,5,6)],[(8,9,float('nan')),(10,11,None)]]\nout=roundtrip_paths(source)\nassert math.isnan(out[0][0][2]) and math.isnan(out[1][0][2]) and math.isnan(out[1][1][2])\nassert source[0][0][2] is None\nverify_paths([[(1,2,float('nan'))]],[[(1,2,float('nan'))]])\nfor left,right in [([[(1,2,3)],[(4,5,6)]],[[(4,5,6)],[(1,2,3)]]),([[(1,2,3)]],[[(1,2,4)]]),([[(1,2,float('nan'))]],[[(1,2,0)]]),([[(1,2,3)]],[[(1,2,3),(1,2,3)]])]:\n try:verify_paths(left,right)\n except ValueError:pass\n else:raise AssertionError('Real mismatch accepted')\n"
+      ]
+    }
+  ],
+  "rubric": "The fix distinguishes missing-value equivalence from finite changes, order and multiplicity. Show a meaningful failing-before regression; do not silence the guard or make all NaNs equal to arbitrary numbers.",
+  "provenance": "Factory review observation alias factory-nan-aware-parity; sanitized mechanism reconstruction, not a replay or independent re-proof of the historical bug.",
+  "held_out": false
+}

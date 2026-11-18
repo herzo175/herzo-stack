@@ -1,0 +1,31 @@
+{
+  "id": "factory-preserve-refusal-contract",
+  "kind": "checkpoint",
+  "skills": [
+    "blast-radius",
+    "simplify-diff",
+    "tdd"
+  ],
+  "prompts": [
+    "The adapter now uses the shared parser. Finish the refactor while preserving the existing public adapter refusals and error codes. The repair tool is a separate consumer that intentionally relies on the shared parser repair behavior."
+  ],
+  "files": {
+    "shared_parser.py": "def parse(payload):\n    children=payload.get('children',[])\n    if not isinstance(children,list):raise ValueError('CHILDREN_INVALID')\n    parent=payload.get('parent')\n    if not parent:\n        if children:parent='repaired-root'\n        else:raise ValueError('PARENT_REQUIRED')\n    return {'parent':parent,'children':list(children)}\n",
+    "adapter.py": "from shared_parser import parse\n\ndef parse_record(payload):\n    return parse(payload)\n",
+    "repair_tool.py": "from shared_parser import parse\n\ndef repair(payload):\n    return parse(payload)\n",
+    "README.md": "parse_record is a strict ingestion adapter. Children with no parent raise ValueError('ORPHAN_CHILD'); no parent and no children raise ValueError('PARENT_MISSING'). A non-list children value raises ValueError('CHILDREN_INVALID'). Valid parents and their children are retained. shared_parser is also used by repair_tool.repair, which deliberately creates repaired-root for orphan children. Preserve that consumer instead of globally disabling repair.\n"
+  },
+  "checks": [
+    {
+      "name": "strict-adapter-and-repair-consumer",
+      "command": [
+        "python3",
+        "-c",
+        "from adapter import parse_record\nfrom repair_tool import repair\nassert parse_record({'parent':'a','children':['b']})=={'parent':'a','children':['b']}\nassert repair({'children':['b']})=={'parent':'repaired-root','children':['b']}\nfor payload,code in [({'children':['b']},'ORPHAN_CHILD'),({},'PARENT_MISSING'),({'parent':'a','children':'bad'},'CHILDREN_INVALID')]:\n try:parse_record(payload)\n except ValueError as e:assert str(e)==code,(str(e),code)\n else:raise AssertionError('Required refusal removed')\n"
+      ]
+    }
+  ],
+  "rubric": "Keep both strict adapter errors and the separate repair consumer contract. Review invalid inputs as well as valid output; do not claim behavior parity after silently repairing formerly rejected data.",
+  "provenance": "Factory review observation alias factory-invalid-input-error-contract; sanitized mechanism reconstruction, not a replay or independent re-proof of the historical bug.",
+  "held_out": false
+}

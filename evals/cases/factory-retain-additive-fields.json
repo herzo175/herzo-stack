@@ -1,0 +1,30 @@
+{
+  "id": "factory-retain-additive-fields",
+  "kind": "episode",
+  "skills": [
+    "debugging",
+    "tdd",
+    "blast-radius"
+  ],
+  "prompts": [
+    "A release added release_note and this adapter started quarantining otherwise valid records. Fix it according to the documented lossless contract. Keep required-field validation.",
+    "The next release also adds nested quality metadata. Ensure it survives without a special-case field allowlist and that the original id/name and release_note data are still retained."
+  ],
+  "files": {
+    "records.py": "def parse_records(rows):\n    out=[]\n    for row in rows:\n        if type(row.get('id')) is not int or not isinstance(row.get('name'),str):\n            raise ValueError('invalid_required_field')\n        if set(row)-{'id','name'}:\n            raise ValueError('unknown_field')\n        out.append(dict(row))\n    return out\n",
+    "README.md": "parse_records accepts a list of record objects. id must be an integer excluding bool, and name must be a string. This is a lossless source adapter: arbitrary additive publisher fields, including nested values, are retained verbatim. Unknown fields are not an error. Missing or mistyped required fields are errors. Do not mutate caller records.\n"
+  },
+  "checks": [
+    {
+      "name": "lossless-and-validated",
+      "command": [
+        "python3",
+        "-c",
+        "from copy import deepcopy\nfrom records import parse_records\nrows=[{'id':7,'name':'North','release_note':'reissued','quality':{'status':'provisional','codes':[1,2]}}]\nbefore=deepcopy(rows)\nassert parse_records(rows)==rows\nassert rows==before\nfor bad in [{'id':True,'name':'Bad'},{'id':1},{'id':'1','name':'Bad'}]:\n try:parse_records([bad])\n except ValueError:pass\n else:raise AssertionError('Invalid required field accepted')\nassert parse_records([])==[]\n"
+      ]
+    }
+  ],
+  "rubric": "Retain arbitrary additive publisher fields without weakening the required id/name contract or mutating inputs. Later metadata must not erase the earlier release_note requirement.",
+  "provenance": "Factory review observation alias factory-retain-producer-extra-field; sanitized mechanism reconstruction, not a replay or independent re-proof of the historical bug.",
+  "held_out": false
+}

@@ -1,0 +1,39 @@
+{
+  "id": "factory-exercise-framework-entrypoint",
+  "kind": "checkpoint",
+  "skills": [
+    "debugging",
+    "tdd",
+    "research"
+  ],
+  "prompts": [
+    "The helper tests pass but the actual scheduling entrypoint fails to queue requests. Reproduce through framework.evaluate_tick and fix the callback contract. Keep the disabled skip behavior and both request keys. The included framework represents the pinned public contract."
+  ],
+  "files": {
+    "framework.py": "import inspect\nfrom dataclasses import dataclass\n@dataclass\nclass Request:\n    key:str\n@dataclass\nclass Skip:\n    reason:str\n\ndef evaluate_tick(callback,enabled=True):\n    value=callback(enabled)\n    values=list(value) if inspect.isgenerator(value) else [value]\n    if any(not isinstance(v,(Request,Skip)) for v in values):raise TypeError('invalid_callback_item')\n    requests=[v.key for v in values if isinstance(v,Request)]\n    skips=[v.reason for v in values if isinstance(v,Skip)]\n    return {'requests':requests,'skip':skips[0] if skips else None}\n",
+    "schedule.py": "from framework import Request,Skip\n\ndef tick(enabled=True):\n    if not enabled:return Skip('disabled')\n    return [Request('north-daily'),Request('south-daily')]\n",
+    "test_helper.py": "import unittest\nfrom schedule import tick\nclass TestHelper(unittest.TestCase):\n    def test_requests(self):\n        self.assertEqual([r.key for r in tick(True)],['north-daily','south-daily'])\n",
+    "README.md": "The public framework entrypoint evaluate_tick calls the callback. A callback returns one Request/Skip or yields individual Request objects; a returned list is one invalid nested item. tick must queue north-daily and south-daily when enabled, and skip with reason disabled otherwise. Keep the pinned framework's public semantics for other callbacks; update tests to use the same seam the scheduler uses.\n"
+  },
+  "checks": [
+    {
+      "name": "public-schedule-contract",
+      "command": [
+        "python3",
+        "-c",
+        "from framework import evaluate_tick,Request\nfrom schedule import tick\nassert evaluate_tick(tick,True)=={'requests':['north-daily','south-daily'],'skip':None}\nassert evaluate_tick(tick,False)=={'requests':[],'skip':'disabled'}\ntry:evaluate_tick(lambda enabled:[Request('nested')])\nexcept TypeError:pass\nelse:raise AssertionError('Pinned framework semantics changed to hide callback bug')\n"
+      ]
+    },
+    {
+      "name": "maintained-regression-suite",
+      "command": [
+        "python3",
+        "-c",
+        "import subprocess; p=subprocess.run(['python3','-m','unittest','discover','-v'],capture_output=True,text=True); assert p.returncode==0,p.stdout+p.stderr"
+      ]
+    }
+  ],
+  "rubric": "Reproduce and test through the actual public entrypoint. Fix the callback rather than modifying the pinned framework to accept a new undocumented return shape. Verify both enabled and disabled paths; green helper-only tests are insufficient.",
+  "provenance": "Factory review observation alias factory-real-scheduler-entrypoint; sanitized mechanism reconstruction, not a replay or independent re-proof of the historical bug.",
+  "held_out": false
+}
