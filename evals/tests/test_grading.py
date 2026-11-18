@@ -118,3 +118,20 @@ def test_oversized_evidence_is_not_silently_truncated(scenario):
     assert (
         judge_evidence(scenario, TrialResult(status="completed", diff="x" * 200), limit=50) is None
     )
+
+
+def test_judge_does_not_duplicate_full_context_snapshots(scenario):
+    result = TrialResult(
+        status="completed",
+        final_response="The report may improve.",
+        events=[
+            {"type": "tool_execution_end", "output": "Observed actual test result"},
+            {"type": "response", "command": "get_messages", "data": {"messages": "x" * 2000}},
+            {"type": "compaction_validated", "original_prompt_removed": True},
+        ],
+    )
+    packet = judge_evidence(scenario, result, limit=1500)
+    assert packet is not None
+    assert "Observed actual test result" in packet
+    assert "compaction_validated" in packet
+    assert "get_messages" not in packet

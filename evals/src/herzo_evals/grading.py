@@ -37,6 +37,7 @@ def judge_evidence(scenario: Scenario, result: TrialResult, limit: int = 100_000
         event
         for event in result.events
         if event.get("type") not in {"message_update", "tool_execution_update"}
+        and not (event.get("type") == "response" and event.get("command") == "get_messages")
     ]
     packet = {
         "user_turns": scenario.prompts,
