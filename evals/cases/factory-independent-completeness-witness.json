@@ -11,7 +11,7 @@
   ],
   "files": {
     "capture.py": "def verify_capture(source,result):\n    if result['feature_count']!=result['source_count']:\n        raise ValueError('incomplete')\n\ndef collect(source):\n    rows=[dict(r) for r in source[:-1]]\n    result={'rows':rows,'feature_count':len(rows),'source_count':len(rows)}\n    verify_capture(source,result)\n    return result\n",
-    "README.md": "Input source is a list of valid records with distinct integer id keys. collect retains all source records in order. verify_capture(source,result) independently checks that output id multiplicity exactly matches the input witness and that feature_count/source_count match their respective actual populations. Reject dropped, duplicated, unknown, or altered records even when reported counts agree. Count aliases computed only from output do not prove completeness.\n"
+    "README.md": "Input source is a list of valid records with distinct integer id keys. collect retains all source records in order. verify_capture(source,result) independently checks that output id multiplicity exactly matches the input witness and that feature_count/source_count match their respective actual populations. Reject dropped, duplicated, unknown, or altered records even when reported counts agree. Count aliases computed only from output do not prove completeness.\nThe independent input witness must not be mutated by collection or verification.\n"
   },
   "checks": [
     {
@@ -19,7 +19,7 @@
       "command": [
         "python3",
         "-c",
-        "from capture import collect,verify_capture\nsource=[{'id':1,'value':'a'},{'id':2,'value':'b'}]\nr=collect(source)\nassert r['rows']==source and r['feature_count']==2 and r['source_count']==2\nassert collect([])['rows']==[]\nfor rows in [[source[0]],[source[0],source[0]],[{'id':1,'value':'changed'},source[1]],[source[0],{'id':9,'value':'b'}]]:\n bad={'rows':rows,'feature_count':len(rows),'source_count':len(rows)}\n try:verify_capture(source,bad)\n except ValueError:pass\n else:raise AssertionError('Independent source witness was not enforced')\n"
+        "from copy import deepcopy\nfrom capture import collect,verify_capture\nsource=[{'id':1,'value':'a'},{'id':2,'value':'b'}]\nbefore=deepcopy(source)\nr=collect(source)\nassert source==before\nassert r['rows']==before and r['feature_count']==2 and r['source_count']==2\nassert collect([])['rows']==[]\nfor rows in [[source[0]],[source[0],source[0]],[{'id':1,'value':'changed'},source[1]],[source[0],{'id':9,'value':'b'}]]:\n bad={'rows':rows,'feature_count':len(rows),'source_count':len(rows)}\n try:verify_capture(source,bad)\n except ValueError:pass\n else:raise AssertionError('Independent source witness was not enforced')\n"
       ]
     }
   ],

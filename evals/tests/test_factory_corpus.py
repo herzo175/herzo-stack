@@ -274,3 +274,19 @@ def test_public_cases_and_catalogue_have_no_private_source_identifiers():
             value in text
             for value in ["/Users/", "/private/tmp/", "sk-or-", "worker_id", "run_id", "@gmail.com"]
         )
+
+
+def test_completeness_grader_rejects_mutating_its_source_witness(tmp_path):
+    scenario = next(s for s in SCENARIOS if s.id == "factory-independent-completeness-witness")
+    stage(tmp_path, scenario.files)
+    stage(tmp_path, REFERENCES[scenario.id])
+    path = tmp_path / "capture.py"
+    source = path.read_text().replace(
+        "    rows=[dict(r) for r in source]",
+        "    for row in source:row['value']='altered'\n    rows=[dict(r) for r in source]",
+    )
+    path.write_text(source)
+    assert any(
+        result.returncode != check.expected_exit
+        for check, result in zip(scenario.checks, run_checks(scenario, tmp_path), strict=True)
+    )
