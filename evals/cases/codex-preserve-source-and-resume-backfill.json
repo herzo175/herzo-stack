@@ -18,7 +18,7 @@
       "command": [
         "python3",
         "-c",
-        "import sqlite3,tempfile\nfrom pathlib import Path\nfrom replication import backfill\nexpected=[(1,10),(2,20),(3,30),(4,40),(5,50)]\ndef rows(path):\n with sqlite3.connect(path) as db:return db.execute('SELECT id,value FROM samples ORDER BY id').fetchall()\nassert rows('source.sqlite')==expected,'Authoritative source changed during implementation'\nwith tempfile.TemporaryDirectory() as d:\n dest=Path(d)/'derived.sqlite'\n backfill('source.sqlite',str(dest),limit=2);assert rows(dest)==expected[:2];assert rows('source.sqlite')==expected\n backfill('source.sqlite',str(dest));assert rows(dest)==expected;assert rows('source.sqlite')==expected\n backfill('source.sqlite',str(dest));assert rows(dest)==expected;assert rows('source.sqlite')==expected\n"
+        "import sqlite3,tempfile\nfrom pathlib import Path\nfrom replication import backfill\nexpected=[(1,10),(2,20),(3,30),(4,40),(5,50)]\ndef rows(path):\n with sqlite3.connect(path) as db:return db.execute('SELECT id,value FROM samples ORDER BY id').fetchall()\nassert rows('source.sqlite')==expected,'Authoritative source changed during implementation'\nwith tempfile.TemporaryDirectory() as d:\n dest=Path(d)/'derived.sqlite'\n backfill('source.sqlite',str(dest),limit=2);assert rows(dest)==expected[:2];assert rows('source.sqlite')==expected\n backfill('source.sqlite',str(dest),limit=2);assert rows(dest)==expected[:4];assert rows('source.sqlite')==expected\n backfill('source.sqlite',str(dest));assert rows(dest)==expected;assert rows('source.sqlite')==expected\n backfill('source.sqlite',str(dest));assert rows(dest)==expected;assert rows('source.sqlite')==expected\n"
       ]
     }
   ],

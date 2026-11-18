@@ -523,3 +523,24 @@ def test_catalogue_provenance_and_coverage():
                 "jeremy",
             ]
         )
+
+
+def test_non_destructive_restart_is_not_mistaken_for_resumption(tmp_path):
+    scenario = next(
+        case for case in SCENARIOS if case.id == "codex-preserve-source-and-resume-backfill"
+    )
+    prepare(scenario, tmp_path)
+    # A plausible partial fix preserves the source but still selects its first batch every time.
+    restarting = (
+        "\n".join(
+            line
+            for line in scenario.files["replication.py"].splitlines()
+            if "DELETE FROM" not in line
+        )
+        + "\n"
+    )
+    apply(tmp_path, {"replication.py": restarting})
+    assert any(
+        result.returncode != check.expected_exit
+        for check, result in zip(scenario.checks, results(scenario, tmp_path), strict=True)
+    )
