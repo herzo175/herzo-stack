@@ -31,6 +31,10 @@ on:
         required: true
         default: e45aa78eaec30be8c291989a766ba9153f0e7626
         type: string
+      case_id:
+        description: Optional single case ID for a bounded pilot
+        required: false
+        type: string
       include_held_out:
         description: Include release-check cases (required for compaction suite)
         type: boolean
@@ -107,14 +111,17 @@ jobs:
           EVAL_BASELINE: ${{ inputs.baseline || vars.EVAL_BASELINE || 'e45aa78eaec30be8c291989a766ba9153f0e7626' }}
           EVAL_REPEAT: ${{ inputs.repeat || '1' }}
           EVAL_HELD_OUT: ${{ github.event_name == 'schedule' || inputs.include_held_out }}
+          EVAL_CASE: ${{ inputs.case_id }}
         run: |
           held_out=()
+          selected_case=()
+          if [[ -n "$EVAL_CASE" ]]; then selected_case+=(--case "$EVAL_CASE"); fi
           if [[ "$EVAL_HELD_OUT" == "true" ]]; then held_out+=(--include-held-out); fi
           uv run --project evals --frozen herzo-evals \
             --runtime "$EVAL_RUNTIME" --kind "$EVAL_SUITE" \
             --model "$EVAL_MODEL" --judge-model "$EVAL_JUDGE_MODEL" \
             --baseline-ref "$EVAL_BASELINE" --repeat "$EVAL_REPEAT" \
-            --concurrency 1 --timeout 600 "${held_out[@]}" \
+            --concurrency 1 --timeout 600 "${held_out[@]}" "${selected_case[@]}" \
             --output evals/results/ci
       - name: Publish review summary
         if: always()

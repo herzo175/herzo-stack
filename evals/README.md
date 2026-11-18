@@ -58,7 +58,10 @@ uv run --project evals herzo-evals \
 ```
 
 Compaction cases require a successful native Pi compaction action followed by more work, with
-observed compaction evidence. They do not establish reliability across hours of work or natural
+observed compaction evidence. The forced case records a 1,024-token recent-history policy and
+requires that the original instruction is removed from the active context and replaced by a
+summary. This is an accelerated stress case, not the runtime's default retention policy. It does
+not establish reliability across hours of work or natural
 context exhaustion. OpenCode compaction is currently unsupported and rejected explicitly.
 See [case provenance and limitations](CASES.md). The held-out flag separates development cases
 from a release check set; once you tune against a case, treat it as development data and add
@@ -93,7 +96,7 @@ an agent choosing the wrong implementation.
 
 `.github/workflows/evals.yml` runs offline checks for relevant PRs and main changes. Use
 **Actions → Skill evals → Run workflow** for a bounded paired trial: choose a runtime, episode
-type, explicit agent/judge model IDs, baseline commit, and repetitions. Enable the held-out checkbox for release checks, including
+type, explicit agent/judge model IDs, baseline commit, and repetitions. Select a single case ID for a small pilot. Enable the held-out checkbox for release checks, including
 the compaction suite; ordinary PR runs exclude those cases. Full evidence is kept
 as an artifact for seven days; the job summary shows per-case results.
 
