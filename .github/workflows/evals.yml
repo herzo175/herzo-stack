@@ -1,0 +1,110 @@
+name: Skill evals
+
+on:
+  push:
+    branches: [main]
+    paths: ['skills/**', 'evals/**', '.github/workflows/evals.yml']
+  pull_request:
+    paths: ['skills/**', 'evals/**', '.github/workflows/evals.yml']
+  workflow_dispatch:
+    inputs:
+      runtime:
+        description: Coding runtime
+        type: choice
+        options: [pi, opencode]
+        default: pi
+      suite:
+        description: Episode type (compaction requires Pi)
+        type: choice
+        options: [checkpoint, episode, compaction]
+        default: checkpoint
+      model:
+        description: Explicit OpenRouter agent model ID (provider/model)
+        required: true
+        type: string
+      judge_model:
+        description: Explicit OpenRouter judge model ID (provider/model)
+        required: true
+        type: string
+      baseline:
+        description: Released skill commit to compare
+        required: true
+        default: e45aa78eaec30be8c291989a766ba9153f0e7626
+        type: string
+      repeat:
+        description: Trials per arm
+        type: choice
+        options: ['1', '2', '3']
+        default: '1'
+  schedule:
+    - cron: '17 5 * * 1'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: skill-evals-${{ github.event_name }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  offline:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78 # v7
+        with:
+          version: '0.9.9'
+      - run: uv sync --project evals --frozen
+      - run: uv run --project evals --frozen ruff check evals
+      - run: uv run --project evals --frozen ruff format --check evals
+      - run: uv run --project evals --frozen pytest evals/tests -q
+      - run: uv run --project evals --frozen herzo-evals --list --include-held-out
+
+  behavioral:
+    needs: offline
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'schedule' && vars.EVAL_SCHEDULE_ENABLED == 'true') ||
+      (github.event_name == 'pull_request' && vars.EVAL_PR_RUNS_ENABLED == 'true' &&
+       github.event.pull_request.head.repo.full_name == github.repository)
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78 # v7
+        with:
+          version: '0.9.9'
+      - run: uv sync --project evals --frozen
+      - run: docker build --tag herzo-evals:local evals/container
+      - name: Run paired trials
+        env:
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          EVAL_RUNTIME: ${{ inputs.runtime || 'pi' }}
+          EVAL_SUITE: ${{ inputs.suite || (github.event_name == 'schedule' && 'compaction') || 'checkpoint' }}
+          EVAL_MODEL: ${{ inputs.model || vars.EVAL_MODEL }}
+          EVAL_JUDGE_MODEL: ${{ inputs.judge_model || vars.EVAL_JUDGE_MODEL }}
+          EVAL_BASELINE: ${{ inputs.baseline || vars.EVAL_BASELINE || 'e45aa78eaec30be8c291989a766ba9153f0e7626' }}
+          EVAL_REPEAT: ${{ inputs.repeat || '1' }}
+        run: >-
+          uv run --project evals --frozen herzo-evals
+          --runtime "$EVAL_RUNTIME" --kind "$EVAL_SUITE"
+          --model "$EVAL_MODEL" --judge-model "$EVAL_JUDGE_MODEL"
+          --baseline-ref "$EVAL_BASELINE" --repeat "$EVAL_REPEAT"
+          --concurrency 1 --timeout 600 --include-held-out
+          --output evals/results/ci
+      - name: Publish review summary
+        if: always()
+        run: uv run --project evals --frozen python evals/tools/summarize.py evals/results/ci
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: always()
+        with:
+          name: skill-eval-evidence-${{ github.run_id }}
+          path: evals/results/ci
+          if-no-files-found: ignore
+          retention-days: 7

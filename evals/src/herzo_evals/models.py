@@ -42,9 +42,13 @@ class Scenario(StrictModel):
     def safe_files(cls, files: dict[str, str]) -> dict[str, str]:
         for name in files:
             path = PurePosixPath(name)
-            if (path.is_absolute() or ".." in path.parts or not path.parts
-                    or path.parts[0] in {".git", ".pi", ".opencode", ".agents"}
-                    or "\\" in name):
+            if (
+                path.is_absolute()
+                or ".." in path.parts
+                or not path.parts
+                or path.parts[0] in {".git", ".pi", ".opencode", ".agents"}
+                or "\\" in name
+            ):
                 raise ValueError(f"Unsafe fixture path: {name}")
         return files
 
