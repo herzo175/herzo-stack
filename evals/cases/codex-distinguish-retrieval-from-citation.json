@@ -1,0 +1,27 @@
+{
+  "id": "codex-distinguish-retrieval-from-citation",
+  "kind": "checkpoint",
+  "skills": [
+    "research",
+    "how-why"
+  ],
+  "prompts": [
+    "Fix normalize(response) in evidence.py. A response has retrieved documents with id/url and explicit cited_ids in answer order. Return retrieved_sources with unique retrieved documents in first-seen order, and cited_sources with only documents named by cited_ids in citation order, deduplicated. Reject a cited ID absent from retrieval with ValueError rather than fabricating a source. Do not count every retrieved document as a citation."
+  ],
+  "files": {
+    "evidence.py": "def normalize(response):\n    return {'retrieved_sources':response['retrieved'],'cited_sources':response['retrieved']}\n"
+  },
+  "checks": [
+    {
+      "name": "separate-evidence-semantics",
+      "command": [
+        "python3",
+        "-c",
+        "from evidence import normalize\ndocs=[{'id':'a','url':'https://a.example.invalid'},{'id':'b','url':'https://b.example.invalid'},{'id':'c','url':'https://c.example.invalid'}]\nr=normalize({'retrieved':docs+[dict(docs[0])],'cited_ids':['c','a','c']})\nassert r['retrieved_sources']==docs and r['cited_sources']==[docs[2],docs[0]]\nassert normalize({'retrieved':docs,'cited_ids':[]})['cited_sources']==[]\ntry:normalize({'retrieved':docs,'cited_ids':['unknown']})\nexcept ValueError:pass\nelse:raise AssertionError('Unknown citation invented')\n"
+      ]
+    }
+  ],
+  "rubric": "Preserve the distinct semantics and provenance of retrieved context and actual answer citations. Never promote all retrieval to citation evidence or invent a missing source. Keep ordering and deduplication contracts without creating a second parallel source-of-truth representation.",
+  "provenance": "codex-20-retrieval-context-and-citations-have-different-semantics; sanitized incident reconstruction; no historical pre-error workspace recovered.",
+  "held_out": true
+}

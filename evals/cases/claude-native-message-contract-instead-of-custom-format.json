@@ -1,0 +1,30 @@
+{
+  "id": "claude-native-message-contract-instead-of-custom-format",
+  "kind": "checkpoint",
+  "skills": [
+    "research",
+    "blast-radius",
+    "simplify-diff"
+  ],
+  "prompts": [
+    "Replace the unreleased custom message format in chat.py with the supplied native_messages encode/decode API. There are no persisted users or records to migrate. Keep chat.store(message) and chat.restore(stored) and preserve every native part, including text and tool results. Read the local API documentation instead of inventing another transport or keeping the old format."
+  ],
+  "files": {
+    "native_messages.py": "calls = []\n\n\ndef encode(message):\n    calls.append(\"encode\")\n    return {\n        \"id\": message[\"id\"],\n        \"role\": message[\"role\"],\n        \"parts\": [dict(part) for part in message[\"parts\"]],\n    }\n\n\ndef decode(stored):\n    calls.append(\"decode\")\n    return {\n        \"id\": stored[\"id\"],\n        \"role\": stored[\"role\"],\n        \"parts\": [dict(part) for part in stored[\"parts\"]],\n    }\n",
+    "chat.py": "def store(message):\n    return {\"text\": message[\"parts\"][0][\"text\"]}\n\n\ndef restore(stored):\n    return {\n        \"role\": \"assistant\",\n        \"parts\": [{\"type\": \"text\", \"text\": stored[\"text\"]}],\n    }\n",
+    "README.md": "native_messages.encode(message) and native_messages.decode(stored) preserve the supported {id,role,parts} contract. Parts may be text, tool-result, or custom data. Use these existing APIs; do not modify native_messages.py. This fixture is a local SDK stand-in, not a real network client."
+  },
+  "checks": [
+    {
+      "name": "independent-outcome",
+      "command": [
+        "python3",
+        "-c",
+        "import hashlib\nfrom pathlib import Path\nassert hashlib.sha256(Path('native_messages.py').read_bytes()).hexdigest()=='b1a2d3b8b32258812930f0b40a443391e781eda259e549e1b92e270bd291678e', 'The supplied local API was modified'\nimport native_messages\nfrom chat import store,restore\nmessage={'id':'m1','role':'assistant','parts':[{'type':'text','text':'Answer'},{'type':'tool-result','tool':'lookup','result':{'found':True}},{'type':'data-note','value':7}]}\nexpected=native_messages.encode(message);native_messages.calls.clear();stored=store(message);restored=restore(stored)\nassert restored==message and stored==expected\nassert 'encode' in native_messages.calls and 'decode' in native_messages.calls\nassert message['parts'][1]['result']=={'found':True}\n"
+      ]
+    }
+  ],
+  "rubric": "Use the provided native message APIs and supported parts end to end; preserve tool/custom data without retaining an invented parallel format or an unnecessary migration path. SDK source stays unchanged.",
+  "provenance": "claude-audit:native-message-contract-instead-of-custom-format; sanitized incident reconstruction using designed local fixtures, not a historical workspace replay; follow-up turns are designed extensions.",
+  "held_out": false
+}

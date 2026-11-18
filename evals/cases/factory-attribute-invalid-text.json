@@ -1,0 +1,30 @@
+{
+  "id": "factory-attribute-invalid-text",
+  "kind": "checkpoint",
+  "skills": [
+    "debugging",
+    "research",
+    "tdd",
+    "deslop"
+  ],
+  "prompts": [
+    "The source adapter claims arbitrary text bytes survive, but its strict UTF-8 writer crashes on invalid source bytes. Investigate the real reader-to-writer path. Keep valid text unchanged and implement the documented attributed failure contract rather than replacing or dropping bytes. Correct README claims."
+  ],
+  "files": {
+    "text_storage.py": "class SourceTextError(ValueError):\n    pass\n\ndef write_text(item_id,field,body):\n    return body.decode('utf-8',errors='surrogateescape').encode('utf-8')\n",
+    "README.md": "The storage wire format is strict UTF-8 and cannot store surrogate code points. write_text(item_id, field, body) returns the identical bytes for valid UTF-8. On unrepresentable input, raise SourceTextError with item_id, field, and raw attributes preserving the source identifiers and original bytes. Never use replacement characters or ignore errors. The current implementation note incorrectly says all invalid bytes are already retained in the string column; correct that claim to match actual supported behavior.\n"
+  },
+  "checks": [
+    {
+      "name": "valid-text-and-attributed-refusal",
+      "command": [
+        "python3",
+        "-c",
+        "from text_storage import write_text,SourceTextError\nbody='Cr\u00e8me'.encode()\nassert write_text('r1','title',body)==body\nbad=b'bad'+bytes([0x92])+b'text'\ntry:write_text('r7','publisher',bad)\nexcept SourceTextError as e:\n assert e.item_id=='r7' and e.field=='publisher' and e.raw==bad\nelse:raise AssertionError('Invalid source text silently accepted or replaced')\n"
+      ]
+    }
+  ],
+  "rubric": "Prove behavior through the strict writer. Preserve original bytes in an attributed failure and avoid replacement/ignore-based data loss. Documentation must describe supported behavior, not an impossible byte-preservation claim.",
+  "provenance": "Factory review observation alias factory-invalid-text-attribution; sanitized mechanism reconstruction, not a replay or independent re-proof of the historical bug.",
+  "held_out": false
+}

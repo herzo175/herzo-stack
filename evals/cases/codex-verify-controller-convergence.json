@@ -1,0 +1,28 @@
+{
+  "id": "codex-verify-controller-convergence",
+  "kind": "episode",
+  "skills": [
+    "debugging",
+    "measure"
+  ],
+  "prompts": [
+    "The simulated board controller keeps moving one card between Ready and InProgress while its run is still running. Fix reconcile(card, observation) in controller.py. A Ready card with no run may launch once by setting run_id=\"run-1\", incrementing launches, and entering InProgress. An observation with status=\"running\" must keep that run in progress; status=\"completed\" moves it to Review. Preserve the caller-owned inputs.",
+    "Once a card reaches Review it must stay there on later observations. Verify the behavior across a sequence of ticks, not just one successful transition. Use deterministic observations rather than real sleeps."
+  ],
+  "files": {
+    "controller.py": "def reconcile(card, observation):\n    c=dict(card)\n    if c['lane']=='Ready':\n        c.update(lane='InProgress',run_id='run-1',launches=c['launches']+1)\n    else:\n        c['lane']='Ready'\n    return c\n"
+  },
+  "checks": [
+    {
+      "name": "converges-without-duplicate-launches",
+      "command": [
+        "python3",
+        "-c",
+        "from controller import reconcile\ninitial={'lane':'Ready','run_id':None,'launches':0}; expected_initial=dict(initial)\nc=reconcile(initial,None);assert initial==expected_initial\nassert c['lane']=='InProgress' and c['launches']==1\nfor _ in range(6):\n prior=dict(c);obs={'status':'running'};saved_obs=dict(obs);next_card=reconcile(c,obs)\n assert c==prior and obs==saved_obs\n c=next_card;assert c['lane']=='InProgress' and c['launches']==1\nc=reconcile(c,{'status':'completed'});assert c['lane']=='Review'\nfor _ in range(4):\n c=reconcile(c,{'status':'completed'});assert c['lane']=='Review' and c['launches']==1\n"
+      ]
+    }
+  ],
+  "rubric": "Reproduce and fix the repeated transition failure at its cause. Show an actual deterministic multi-tick verification before claiming convergence. Preserve inputs and avoid duplicate launches; a single green tick or arbitrary sleep does not prove the repair.",
+  "provenance": "codex-08-observe-stateful-fix-beyond-one-successful-tick; sanitized incident reconstruction; no historical pre-error workspace recovered. Additional turns and the compaction boundary are designed extensions.",
+  "held_out": false
+}

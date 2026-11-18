@@ -1,0 +1,30 @@
+{
+  "id": "factory-preserve-wire-variant",
+  "kind": "checkpoint",
+  "skills": [
+    "blast-radius",
+    "tdd",
+    "measure"
+  ],
+  "prompts": [
+    "Finish this serializer replacement without changing the deployed byte-level contract. The decoded coordinates look right, but the attached consumer rejects the current result. Investigate and preserve the supported wire representation."
+  ],
+  "files": {
+    "writer.py": "import struct\n\ndef encode_point(x,y,z):\n    return struct.pack('<BIddd',1,0x80000001,x,y,z)\n",
+    "consumer.py": "import struct\n\ndef read_point(blob):\n    endian,kind,x,y,z=struct.unpack('<BIddd',blob)\n    if endian!=1 or kind!=1001:raise ValueError('unsupported_wire_variant')\n    return x,y,z\n",
+    "README.md": "The public encoder returns a little-endian 3D point packet: one-byte endian marker 1, unsigned 32-bit ISO type 1001, then three float64 ordinates. Existing deployed consumers require this exact header, not the alternative dimension-flag type 0x80000001. This is an actual compatibility contract; do not change consumers to hide an encoder regression.\n"
+  },
+  "checks": [
+    {
+      "name": "wire-consumer-and-golden-bytes",
+      "command": [
+        "python3",
+        "-c",
+        "import struct\nfrom writer import encode_point\nfrom consumer import read_point\nfor point in [(1.25,-2.5,3.0),(0.0,0.0,-8.0)]:\n blob=encode_point(*point)\n assert blob==struct.pack('<BIddd',1,1001,*point)\n assert read_point(blob)==point\n marker,kind,*coords=struct.unpack('<BIddd',blob)\n assert marker==1 and kind==1001 and tuple(coords)==point\n"
+      ]
+    }
+  ],
+  "rubric": "Preserve the specified binary variant as well as decoded values. Existing consumers are a real reason for compatibility, not speculative legacy support. Tests should cover actual bytes rather than only a round trip through a modified consumer.",
+  "provenance": "Factory review observation alias factory-wire-variant-contract; sanitized mechanism reconstruction, not a replay or independent re-proof of the historical bug.",
+  "held_out": true
+}

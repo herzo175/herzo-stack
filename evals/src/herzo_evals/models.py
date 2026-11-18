@@ -53,6 +53,16 @@ class Scenario(StrictModel):
         return files
 
     @model_validator(mode="after")
+    def unambiguous_case(self) -> "Scenario":
+        if any(not prompt.strip() for prompt in self.prompts):
+            raise ValueError("Every turn needs a nonempty user prompt")
+        if len({check.name for check in self.checks}) != len(self.checks):
+            raise ValueError("Independent check names must be unique")
+        if len(set(self.skills)) != len(self.skills):
+            raise ValueError("Selected skill names must be unique")
+        return self
+
+    @model_validator(mode="after")
     def compaction_action(self) -> "Scenario":
         if self.kind == "compaction" and self.compact_after_turn is None:
             raise ValueError("Compaction cases require an actual compaction action")
@@ -90,3 +100,20 @@ class TrialResult(StrictModel):
     usage: dict[str, Any] = Field(default_factory=dict)
     error: str | None = None
     duration: float = 0
+
+
+class CorpusEntry(StrictModel):
+    case_id: str
+    family: str
+    source_ids: list[str]
+    origin: Literal["incident_reconstruction", "designed_control", "designed_extension"]
+    skills: list[str]
+    scope: Literal["general", "factory-specific", "project-specific"]
+    held_out: bool
+    coverage: str = Field(min_length=20)
+
+    @model_validator(mode="after")
+    def incident_has_source(self) -> "CorpusEntry":
+        if self.origin == "incident_reconstruction" and not self.source_ids:
+            raise ValueError("Incident reconstructions require a private source alias")
+        return self

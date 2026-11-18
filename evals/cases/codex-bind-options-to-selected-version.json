@@ -1,0 +1,29 @@
+{
+  "id": "codex-bind-options-to-selected-version",
+  "kind": "episode",
+  "skills": [
+    "how-why",
+    "blast-radius"
+  ],
+  "prompts": [
+    "Fix view_state(catalog, version, selected_hazard=None) in view.py. Each version has its own assets mapping hazard names to hrefs. Return available_hazards sorted from that version only, selected_hazard preserved only if it exists there, and data_url from the selected hazard or None. Do not display a globally known hazard as available when this version has not computed it.",
+    "Handle switching from one version to another in the same session: a formerly valid hazard must clear when absent in the new version, while a shared hazard keeps the new version\u2019s URL.",
+    "A version with no assets should yield an empty list, selected_hazard=None and data_url=None. Verify switching and empty coverage without inventing default assets."
+  ],
+  "files": {
+    "view.py": "def view_state(catalog,version,selected_hazard=None):\n    all_assets={}\n    for v in catalog.values():all_assets.update(v['assets'])\n    return {'available_hazards':sorted(all_assets),'selected_hazard':selected_hazard,'data_url':all_assets.get(selected_hazard)}\n"
+  },
+  "checks": [
+    {
+      "name": "version-scoped-options-and-values",
+      "command": [
+        "python3",
+        "-c",
+        "from view import view_state\ncatalog={'v1':{'assets':{'heat':'old-heat','flood':'old-flood'}},'v2':{'assets':{'heat':'new-heat','wind':'new-wind'}},'empty':{'assets':{}}}\na=view_state(catalog,'v1','flood');assert a=={'available_hazards':['flood','heat'],'selected_hazard':'flood','data_url':'old-flood'}\nb=view_state(catalog,'v2',a['selected_hazard']);assert b=={'available_hazards':['heat','wind'],'selected_hazard':None,'data_url':None}\nc=view_state(catalog,'v2','heat');assert c['data_url']=='new-heat'\nassert view_state(catalog,'empty','heat')=={'available_hazards':[],'selected_hazard':None,'data_url':None}\n"
+      ]
+    }
+  ],
+  "rubric": "Bind options, selection validity and displayed data to the selected version\u2019s actual assets. Preserve a valid selection across switches but clear unavailable data. Do not claim computed coverage merely because another version has it or invent fallback assets.",
+  "provenance": "codex-22-derive-visible-options-from-the-selected-version; sanitized incident reconstruction; no historical pre-error workspace recovered. Additional turns and the compaction boundary are designed extensions.",
+  "held_out": false
+}

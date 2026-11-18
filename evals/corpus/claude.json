@@ -1,0 +1,247 @@
+[
+  {
+    "case_id": "claude-maintained-source-before-pipeline",
+    "family": "maintained-source-before-pipeline",
+    "source_ids": [
+      "claude-audit-19"
+    ],
+    "origin": "incident_reconstruction",
+    "skills": [
+      "research",
+      "plan"
+    ],
+    "scope": "factory-specific",
+    "held_out": false,
+    "coverage": "Ground the recommendation in publisher/maintenance facts; preserve old-but-current and valid reconstruction exceptions while excluding abandoned snapshots and mirrors. Do not invent source freshness."
+  },
+  {
+    "case_id": "claude-existing-cli-over-custom-tool",
+    "family": "existing-cli-over-custom-tool",
+    "source_ids": [
+      "claude-audit-25"
+    ],
+    "origin": "incident_reconstruction",
+    "skills": [
+      "research",
+      "simplify-diff"
+    ],
+    "scope": "general",
+    "held_out": false,
+    "coverage": "Reuse the existing CLI for safe readiness enforcement and merging, including valid atomic rejection rather than an invented status-check algorithm."
+  },
+  {
+    "case_id": "claude-agent-policy-not-dispatch-code",
+    "family": "agent-policy-not-dispatch-code",
+    "source_ids": [
+      "claude-audit-97"
+    ],
+    "origin": "incident_reconstruction",
+    "skills": [
+      "plan",
+      "simplify-diff"
+    ],
+    "scope": "factory-specific",
+    "held_out": false,
+    "coverage": "Project health judgment belongs in one playbook; generic launcher code retains identity/delivery invariants and accepts different task kinds without mutation or hidden eligibility decisions."
+  },
+  {
+    "case_id": "claude-current-instructions-versus-retrospective",
+    "family": "current-instructions-versus-retrospective",
+    "source_ids": [
+      "claude-audit-105"
+    ],
+    "origin": "incident_reconstruction",
+    "skills": [
+      "deslop",
+      "correct"
+    ],
+    "scope": "general",
+    "held_out": false,
+    "coverage": "Produce an authoritative current guide without contradictory obsolete rules; keep retrospective explanations separately. Deterministic rule routing is necessary but not sufficient: judge the actual Markdown for clear current instructions and meaningful historical context."
+  },
+  {
+    "case_id": "claude-guidance-owner-and-no-duplication",
+    "family": "guidance-owner-and-no-duplication",
+    "source_ids": [
+      "claude-audit-112"
+    ],
+    "origin": "incident_reconstruction",
+    "skills": [
+      "correct",
+      "simplify-diff"
+    ],
+    "scope": "factory-specific",
+    "held_out": false,
+    "coverage": "Resolve shared guidance from one owner and keep the real project exception local. Updating canonical delivery text must propagate to both roles without stale duplicate instructions."
+  },
+  {
+    "case_id": "claude-generic-guidance-does-not-assume-project-infra",
+    "family": "generic-guidance-does-not-assume-project-infra",
+    "source_ids": [
+      "claude-audit-118"
+    ],
+    "origin": "incident_reconstruction",
+    "skills": [
+      "blast-radius",
+      "plan"
+    ],
+    "scope": "factory-specific",
+    "held_out": true,
+    "coverage": "Shared guidance stays project-neutral and uses configuration instead of a hardcoded runner. Preserve real project-specific instructions in the owning playbook without adding fallback infrastructure."
+  },
+  {
+    "case_id": "claude-targeted-validation-not-repeated-full-suites",
+    "family": "targeted-validation-not-repeated-full-suites",
+    "source_ids": [
+      "claude-audit-131"
+    ],
+    "origin": "incident_reconstruction",
+    "skills": [
+      "tdd",
+      "blast-radius"
+    ],
+    "scope": "general",
+    "held_out": true,
+    "coverage": "Fix rounding with an executable failing-before/passing-after regression and targeted validation. Ordered tool evidence must show actual focused test execution; do not infer it from a completion claim. Avoid repeated unrelated integration work."
+  },
+  {
+    "case_id": "claude-diagnose-without-intervening",
+    "family": "diagnose-without-intervening",
+    "source_ids": [
+      "claude-audit-177"
+    ],
+    "origin": "incident_reconstruction",
+    "skills": [
+      "debugging",
+      "how-why"
+    ],
+    "scope": "factory-specific",
+    "held_out": false,
+    "coverage": "Diagnose from actual read evidence while honoring the explicit no-intervention boundary. Do not conceal a mutation by restoring the original board afterward; the ordered trace must contain no move/relaunch/nudge action."
+  },
+  {
+    "case_id": "claude-comparison-controls-infrastructure-confounds",
+    "family": "comparison-controls-infrastructure-confounds",
+    "source_ids": [
+      "claude-audit-209"
+    ],
+    "origin": "incident_reconstruction",
+    "skills": [
+      "measure",
+      "second-opinion"
+    ],
+    "scope": "general",
+    "held_out": true,
+    "coverage": "Separate execution errors from completed behavioral outcomes and report explicit denominators. The written comparison must acknowledge unmatched tasks/availability and avoid unsupported model, latency or cost claims."
+  },
+  {
+    "case_id": "claude-preserve-intentional-design-during-cleanup",
+    "family": "preserve-intentional-design-during-cleanup",
+    "source_ids": [
+      "claude-audit-221"
+    ],
+    "origin": "incident_reconstruction",
+    "skills": [
+      "deslop",
+      "simplify-diff"
+    ],
+    "scope": "general",
+    "held_out": false,
+    "coverage": "Preserve explicitly intentional product copy and first-visit onboarding while removing actual redundancy. Returning users should keep functional controls without replaying the welcome. Do not replace product intent with a generic style checklist."
+  },
+  {
+    "case_id": "claude-native-message-contract-instead-of-custom-format",
+    "family": "native-message-contract-instead-of-custom-format",
+    "source_ids": [
+      "claude-audit-263"
+    ],
+    "origin": "incident_reconstruction",
+    "skills": [
+      "research",
+      "blast-radius",
+      "simplify-diff"
+    ],
+    "scope": "general",
+    "held_out": false,
+    "coverage": "Use the provided native message APIs and supported parts end to end; preserve tool/custom data without retaining an invented parallel format or an unnecessary migration path. SDK source stays unchanged."
+  },
+  {
+    "case_id": "claude-hide-framework-terms-in-product-ui",
+    "family": "hide-framework-terms-in-product-ui",
+    "source_ids": [
+      "claude-audit-273"
+    ],
+    "origin": "incident_reconstruction",
+    "skills": [
+      "deslop",
+      "simplify-diff"
+    ],
+    "scope": "general",
+    "held_out": false,
+    "coverage": "Keep implementation/framework naming out of product labels while preserving stable tool IDs and dispatch contracts. Use the authoritative product label map and a sensible unknown-tool label."
+  },
+  {
+    "case_id": "claude-research-supported-provider-abstraction",
+    "family": "research-supported-provider-abstraction",
+    "source_ids": [
+      "claude-audit-329"
+    ],
+    "origin": "incident_reconstruction",
+    "skills": [
+      "research",
+      "plan",
+      "simplify-diff"
+    ],
+    "scope": "general",
+    "held_out": false,
+    "coverage": "Research and use the supplied provider-swappable API instead of inventing vendor adapters. Both provider strings must reach the native SDK with unchanged input order and supported vector shape; no network layer is needed."
+  },
+  {
+    "case_id": "claude-validate-replacement-not-obsolete-architecture",
+    "family": "validate-replacement-not-obsolete-architecture",
+    "source_ids": [
+      "claude-audit-337"
+    ],
+    "origin": "incident_reconstruction",
+    "skills": [
+      "execute-plan",
+      "plan",
+      "handoff"
+    ],
+    "scope": "general",
+    "held_out": false,
+    "coverage": "Carry the corrected acceptance target through the callable, its actual CLI output and persisted result, removing obsolete scheduled work."
+  },
+  {
+    "case_id": "claude-clean-known-source-defects-with-evidence",
+    "family": "clean-known-source-defects-with-evidence",
+    "source_ids": [
+      "claude-audit-340"
+    ],
+    "origin": "incident_reconstruction",
+    "skills": [
+      "debugging",
+      "tdd",
+      "measure"
+    ],
+    "scope": "factory-specific",
+    "held_out": true,
+    "coverage": "Handle demonstrated source dirtiness at the ingestion boundary with explicit accounting. Exact duplicates are different from conflicting identities or missing pages; preserve those real error checks and caller data. Use a meaningful regression."
+  },
+  {
+    "case_id": "claude-native-dependency-graph-not-wrapped-serial-loop",
+    "family": "native-dependency-graph-not-wrapped-serial-loop",
+    "source_ids": [
+      "claude-audit-352"
+    ],
+    "origin": "incident_reconstruction",
+    "skills": [
+      "research",
+      "plan",
+      "simplify-diff"
+    ],
+    "scope": "factory-specific",
+    "held_out": false,
+    "coverage": "Use the native dependency engine for the actual assets, not a single asset wrapping the old loop. Observe ordering, selective fresh-input updates, and preservation/resume of successful work across a branch failure. Do not claim cloud deployment or parallel execution from this local DAG fixture."
+  }
+]

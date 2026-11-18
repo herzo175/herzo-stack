@@ -1,0 +1,242 @@
+[
+  {
+    "case_id": "codex-reuse-owned-preview",
+    "family": "reuse-existing-dev-server",
+    "source_ids": [
+      "codex-01-reuse-existing-dev-server"
+    ],
+    "origin": "incident_reconstruction",
+    "skills": [
+      "execute-plan",
+      "correct"
+    ],
+    "scope": "general",
+    "held_out": false,
+    "coverage": "Before starting another server, inspect the existing one; reuse or deliberately replace the owned process and verify the requested page on the actual port."
+  },
+  {
+    "case_id": "codex-verify-feature-status",
+    "family": "verify-visible-feature-before-reporting-completion",
+    "source_ids": [
+      "codex-02-verify-visible-feature-before-reporting-completion"
+    ],
+    "origin": "incident_reconstruction",
+    "skills": [
+      "execute-plan",
+      "measure"
+    ],
+    "scope": "general",
+    "held_out": false,
+    "coverage": "Inspect the current app behavior and distinguish written code, local verification, deployment, and production verification in the completion report."
+  },
+  {
+    "case_id": "codex-respect-policy-owner",
+    "family": "respect-external-policy-ownership",
+    "source_ids": [
+      "codex-03-respect-external-policy-ownership"
+    ],
+    "origin": "incident_reconstruction",
+    "skills": [
+      "blast-radius",
+      "plan"
+    ],
+    "scope": "general",
+    "held_out": true,
+    "coverage": "Consume and link the authoritative external policy, limiting edits to the authorized application; do not request or invent authority to edit the policy owner\u2019s system."
+  },
+  {
+    "case_id": "codex-verify-controller-convergence",
+    "family": "observe-stateful-fix-beyond-one-successful-tick",
+    "source_ids": [
+      "codex-08-observe-stateful-fix-beyond-one-successful-tick"
+    ],
+    "origin": "designed_extension",
+    "skills": [
+      "debugging",
+      "measure"
+    ],
+    "scope": "factory-specific",
+    "held_out": false,
+    "coverage": "Reproduce the transition loop and verify convergence across the relevant finite observation sequence, rather than equating one successful tick with a stable repair."
+  },
+  {
+    "case_id": "codex-retain-tool-choice-after-compaction",
+    "family": "retain-latest-tool-preference-across-long-work",
+    "source_ids": [
+      "codex-10-retain-latest-tool-preference-across-long-work"
+    ],
+    "origin": "designed_extension",
+    "skills": [
+      "execute-plan",
+      "handoff"
+    ],
+    "scope": "general",
+    "held_out": true,
+    "coverage": "Honor the most recent explicit tool/provider preference through intervening work and compaction; use a previously rejected tool only if a new constraint makes it necessary and explain that constraint."
+  },
+  {
+    "case_id": "codex-cohesive-module-boundaries",
+    "family": "cohesive-nested-modules-over-one-shared-dump",
+    "source_ids": [
+      "codex-11-cohesive-nested-modules-over-one-shared-dump"
+    ],
+    "origin": "incident_reconstruction",
+    "skills": [
+      "plan",
+      "simplify-diff"
+    ],
+    "scope": "general",
+    "held_out": false,
+    "coverage": "Choose module boundaries around real responsibilities; avoid both a single catch-all module and empty or arbitrary splitting solely to satisfy a file-count rule."
+  },
+  {
+    "case_id": "codex-finish-one-time-layout-move",
+    "family": "complete-one-time-move-and-remove-scaffolding",
+    "source_ids": [
+      "codex-12-complete-one-time-move-and-remove-scaffolding"
+    ],
+    "origin": "incident_reconstruction",
+    "skills": [
+      "simplify-diff",
+      "blast-radius"
+    ],
+    "scope": "general",
+    "held_out": false,
+    "coverage": "For an authorized one-time move, migrate the actual state/callers and remove superseded scaffolding when it has no live consumer; preserve it if a still-pending deployment requires it."
+  },
+  {
+    "case_id": "codex-retain-migration-objective",
+    "family": "stay-on-current-objective-through-context-growth",
+    "source_ids": [
+      "codex-13-stay-on-current-objective-through-context-growth"
+    ],
+    "origin": "designed_extension",
+    "skills": [
+      "execute-plan",
+      "handoff"
+    ],
+    "scope": "general",
+    "held_out": false,
+    "coverage": "Complete the current migration and its required checks without taking over independently assigned follow-on work; record deferred owners in the handoff."
+  },
+  {
+    "case_id": "codex-keep-small-fix-scoped",
+    "family": "keep-diff-scoped-to-requested-change",
+    "source_ids": [
+      "codex-14-keep-diff-scoped-to-requested-change"
+    ],
+    "origin": "incident_reconstruction",
+    "skills": [
+      "debugging",
+      "simplify-diff"
+    ],
+    "scope": "general",
+    "held_out": false,
+    "coverage": "Solve the task with a focused coherent diff, reusing existing modules and avoiding generated evidence reports, repetitive status files and unrelated reorganization."
+  },
+  {
+    "case_id": "codex-consume-canonical-asset-href",
+    "family": "use-authoritative-asset-url-instead-of-reconstruction",
+    "source_ids": [
+      "codex-16-use-authoritative-asset-url-instead-of-reconstruction"
+    ],
+    "origin": "designed_extension",
+    "skills": [
+      "how-why",
+      "simplify-diff"
+    ],
+    "scope": "general",
+    "held_out": true,
+    "coverage": "Trace the end-to-end ownership of data fields; let the publisher set canonical asset URLs and make consumers use them directly."
+  },
+  {
+    "case_id": "codex-preserve-requested-search-capability",
+    "family": "do-not-silently-change-requested-search-capability",
+    "source_ids": [
+      "codex-17-do-not-silently-change-requested-search-capability"
+    ],
+    "origin": "incident_reconstruction",
+    "skills": [
+      "research",
+      "blast-radius"
+    ],
+    "scope": "general",
+    "held_out": false,
+    "coverage": "Preserve declared provider and capability semantics; fail explicitly or ask for an authorized alternative when a requested capability is unavailable."
+  },
+  {
+    "case_id": "codex-report-observed-state-without-false-estimate",
+    "family": "omit-unreliable-cost-estimate-and-report-observed-state",
+    "source_ids": [
+      "codex-18-omit-unreliable-cost-estimate-and-report-observed-state"
+    ],
+    "origin": "incident_reconstruction",
+    "skills": [
+      "measure",
+      "deslop"
+    ],
+    "scope": "general",
+    "held_out": false,
+    "coverage": "Report observed queue/call state and known usage separately from estimates; omit or clearly label a cost estimate when its inputs cannot support it."
+  },
+  {
+    "case_id": "codex-distinguish-retrieval-from-citation",
+    "family": "retrieval-context-and-citations-have-different-semantics",
+    "source_ids": [
+      "codex-20-retrieval-context-and-citations-have-different-semantics"
+    ],
+    "origin": "incident_reconstruction",
+    "skills": [
+      "research",
+      "how-why"
+    ],
+    "scope": "general",
+    "held_out": true,
+    "coverage": "Preserve the distinction between material retrieved for model context and sources actually cited in the answer; avoid claiming citation evidence from mere retrieval."
+  },
+  {
+    "case_id": "codex-respect-published-source-coverage",
+    "family": "check-source-catalog-before-inventing-coverage",
+    "source_ids": [
+      "codex-21-check-source-catalog-before-inventing-coverage"
+    ],
+    "origin": "incident_reconstruction",
+    "skills": [
+      "research",
+      "debugging"
+    ],
+    "scope": "general",
+    "held_out": false,
+    "coverage": "Inspect authoritative coverage metadata before retrying nonexistent resources or filling missing periods with invented data."
+  },
+  {
+    "case_id": "codex-bind-options-to-selected-version",
+    "family": "derive-visible-options-from-the-selected-version",
+    "source_ids": [
+      "codex-22-derive-visible-options-from-the-selected-version"
+    ],
+    "origin": "designed_extension",
+    "skills": [
+      "how-why",
+      "blast-radius"
+    ],
+    "scope": "general",
+    "held_out": false,
+    "coverage": "Bind visible options and displayed values to the selected version\u2019s actual available assets, avoiding global or stale metadata that overstates coverage."
+  },
+  {
+    "case_id": "codex-preserve-source-and-resume-backfill",
+    "family": "preserve-authoritative-source-during-derived-data-work",
+    "source_ids": [
+      "codex-24-preserve-authoritative-source-during-derived-data-work"
+    ],
+    "origin": "incident_reconstruction",
+    "skills": [
+      "blast-radius",
+      "plan"
+    ],
+    "scope": "general",
+    "held_out": false,
+    "coverage": "Treat the source-data preservation constraint as an invariant through migration, backfill and cleanup; do not mutate or drop authoritative rows to simplify the destination."
+  }
+]

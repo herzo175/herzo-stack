@@ -1,0 +1,31 @@
+{
+  "id": "factory-find-actual-executor-setting",
+  "kind": "checkpoint",
+  "skills": [
+    "research",
+    "debugging",
+    "how-why"
+  ],
+  "prompts": [
+    "Setting READY in the coordinator did not enable collection. Trace the included execution chain and fix promote so it enables only the collection executor. Preserve the unrelated coordinator gate, and explain the setting reader accurately."
+  ],
+  "files": {
+    "server.py": "def execute(env):\n    return ['collect'] if env.get('READY')=='true' else []\n",
+    "coordinator.py": "import server\n\ndef run(client_env,server_env):\n    return server.execute(server_env)\n",
+    "release.py": "from copy import deepcopy\n\ndef promote(config):\n    result=deepcopy(config)\n    result['coordinator']['READY']='true'\n    return result\n",
+    "README.md": "The coordinator delegates collection callbacks to server.execute with server_env. promote(config) should return a copy enabling collection by setting the server READY gate to true. The coordinator READY gate controls a different task and must remain unchanged. Input config is not mutated. Current operational note (incorrect): collection reads READY in the coordinator, so restart the coordinator to enable it.\n"
+  },
+  "checks": [
+    {
+      "name": "executor-gate-and-unrelated-consumer",
+      "command": [
+        "python3",
+        "-c",
+        "from copy import deepcopy\nfrom release import promote\nfrom coordinator import run\ncfg={'coordinator':{'READY':'false','OTHER':'kept'},'server':{'READY':'false','OTHER':'kept'}}\nbefore=deepcopy(cfg); out=promote(cfg)\nassert cfg==before\nassert out['coordinator']==cfg['coordinator']\nassert out['server']=={'READY':'true','OTHER':'kept'}\nassert run({'READY':'true'},{'READY':'false'})==[]\nassert run({'READY':'false'},{'READY':'true'})==['collect']\nassert run(out['coordinator'],out['server'])==['collect']\n"
+      ]
+    }
+  ],
+  "rubric": "Ground the fix and explanation in the actual delegation path. Do not set both environments or prescribe a coordinator restart based on the wrong mechanism. Preserve unrelated configuration and nonmutation.",
+  "provenance": "Factory review observation alias factory-read-environment-at-executor; sanitized mechanism reconstruction, not a replay or independent re-proof of the historical bug.",
+  "held_out": true
+}

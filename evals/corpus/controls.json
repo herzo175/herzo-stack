@@ -1,0 +1,38 @@
+[
+  {
+    "case_id": "control-grill-failure-alerts",
+    "family": "grill",
+    "source_ids": [],
+    "origin": "designed_control",
+    "skills": [
+      "grill"
+    ],
+    "scope": "general",
+    "held_out": false,
+    "coverage": "First-round clarification of unsettled alerting choices, grounded in supplied facts, before production edits."
+  },
+  {
+    "case_id": "control-prototype-retry-confirmation",
+    "family": "prototype",
+    "source_ids": [],
+    "origin": "designed_control",
+    "skills": [
+      "prototype"
+    ],
+    "scope": "general",
+    "held_out": true,
+    "coverage": "Reviewable throwaway interaction alternatives with in-memory mutations and honest no-browser verification limits."
+  },
+  {
+    "case_id": "control-tickets-import-lifecycle",
+    "family": "to-tickets",
+    "source_ids": [],
+    "origin": "designed_control",
+    "skills": [
+      "to-tickets"
+    ],
+    "scope": "general",
+    "held_out": false,
+    "coverage": "Native tracker publication of vertical slices with acceptance criteria and real dependency IDs, preserving the parent."
+  }
+]

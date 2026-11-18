@@ -1,0 +1,30 @@
+{
+  "id": "claude-research-supported-provider-abstraction",
+  "kind": "checkpoint",
+  "skills": [
+    "research",
+    "plan",
+    "simplify-diff"
+  ],
+  "prompts": [
+    "Make embeddings.embed(texts, provider) use the existing local embedkit.Embedder API so cloud:small and router:small are configuration choices rather than custom HTTP adapters. Preserve an eight-number vector per text and the input order. The local README documents the supported API; do not modify the library or add network calls."
+  ],
+  "files": {
+    "embedkit.py": "import hashlib\n\ncalls = []\n\n\nclass Embedder:\n    def __init__(self, provider):\n        if provider not in {\"cloud:small\", \"router:small\"}:\n            raise ValueError(\"unknown provider\")\n        self.provider = provider\n\n    def embed(self, texts):\n        calls.append({\"provider\": self.provider, \"texts\": list(texts)})\n        return [\n            [\n                value / 255\n                for value in hashlib.sha256(text.encode()).digest()[:8]\n            ]\n            for text in texts\n        ]\n",
+    "embeddings.py": "def embed(texts, provider):\n    return [[0.0] * 3 for text in texts]\n",
+    "README.md": "Use embedkit.Embedder(provider).embed(texts). It accepts cloud:small or router:small and returns eight numeric components per text. The module is a deterministic local SDK stand-in and records calls for independent verification. Switching provider should not require replacing application code."
+  },
+  "checks": [
+    {
+      "name": "independent-outcome",
+      "command": [
+        "python3",
+        "-c",
+        "import hashlib\nfrom pathlib import Path\nassert hashlib.sha256(Path('embedkit.py').read_bytes()).hexdigest()=='07b191e6e7605e75321f34391790111ebb8c37b9cfd44925ff881dd452d20466', 'The supplied local API was modified'\nimport embedkit\nfrom embeddings import embed\ntexts=['alpha','beta']\nfor provider in ['cloud:small','router:small']:\n expected=embedkit.Embedder(provider).embed(texts);embedkit.calls.clear();actual=embed(texts,provider)\n assert actual==expected and len(actual)==2 and all(len(vector)==8 for vector in actual)\n assert embedkit.calls and all(call['provider']==provider for call in embedkit.calls)\n assert [text for call in embedkit.calls for text in call['texts']]==texts\n assert embed([],provider)==[]\n"
+      ]
+    }
+  ],
+  "rubric": "Research and use the supplied provider-swappable API instead of inventing vendor adapters. Both provider strings must reach the native SDK with unchanged input order and supported vector shape; no network layer is needed.",
+  "provenance": "claude-audit:research-supported-provider-abstraction; sanitized incident reconstruction using designed local fixtures, not a historical workspace replay; follow-up turns are designed extensions.",
+  "held_out": false
+}

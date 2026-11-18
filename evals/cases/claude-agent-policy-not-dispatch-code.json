@@ -1,0 +1,30 @@
+{
+  "id": "claude-agent-policy-not-dispatch-code",
+  "kind": "episode",
+  "skills": [
+    "plan",
+    "simplify-diff"
+  ],
+  "prompts": [
+    "Separate project judgment from delivery mechanics. launcher.launch(task) should validate nonempty id and owner, then return a delivery receipt for any task kind/project without choosing priority or eligibility. Keep both mechanical validations. Put the health frequency and triage decisions in playbook.json as guidance entries named health-frequency and health-triage, rather than executable launcher rules.",
+    "A new project also uses this launcher. It must accept a research task just as it accepts health work, without project-specific branches. Leave the task object unchanged."
+  ],
+  "files": {
+    "launcher.py": "def launch(task):\n    if not task.get(\"id\") or not task.get(\"owner\"):\n        raise ValueError(\"id and owner required\")\n    if task.get(\"project\") != \"river\" or task.get(\"kind\") != \"health\":\n        raise ValueError(\"unsupported project policy\")\n    task[\"priority\"] = \"high\"\n    return {\"delivered\": task[\"id\"], \"owner\": task[\"owner\"]}\n",
+    "playbook.json": "{\"health-frequency\": \"\", \"health-triage\": \"\"}",
+    "README.md": "The project manager decides whether/when health work is useful and how failures become follow-up issues. The launcher only validates delivery identity and returns {delivered: task.id, owner: task.owner}."
+  },
+  "checks": [
+    {
+      "name": "independent-outcome",
+      "command": [
+        "python3",
+        "-c",
+        "from launcher import launch\nfrom pathlib import Path\nimport json\nfor kind in ['health','research','implementation']:\n task={'id':'t-'+kind,'owner':'worker','kind':kind,'project':'other'};before=task.copy();assert launch(task)=={'delivered':task['id'],'owner':'worker'};assert task==before\nfor bad in [{'id':'t'},{'owner':'w'},{}]:\n try:launch(bad)\n except ValueError:pass\n else:raise AssertionError('Mechanical identity validation removed')\nplaybook=json.loads(Path('playbook.json').read_text());assert all(isinstance(playbook.get(k),str) and bool(playbook[k].strip()) for k in ['health-frequency','health-triage'])\n"
+      ]
+    }
+  ],
+  "rubric": "Project health judgment belongs in one playbook; generic launcher code retains identity/delivery invariants and accepts different task kinds without mutation or hidden eligibility decisions.",
+  "provenance": "claude-audit:agent-policy-not-dispatch-code; sanitized incident reconstruction using designed local fixtures, not a historical workspace replay; follow-up turns are designed extensions.",
+  "held_out": false
+}

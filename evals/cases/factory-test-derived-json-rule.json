@@ -1,0 +1,31 @@
+{
+  "id": "factory-test-derived-json-rule",
+  "kind": "checkpoint",
+  "skills": [
+    "research",
+    "tdd",
+    "blast-radius"
+  ],
+  "prompts": [
+    "Collection succeeds but the promised organization tag is always empty. Fix the derived rule through the real extraction engine, and add a representative regression. Keep missing-field behavior and the documented shared DSL unchanged."
+  ],
+  "files": {
+    "rule_engine.py": "def extract(payload,*path):\n    value=payload\n    try:\n        for part in path:\n            if isinstance(part,int):value=value[part-1]\n            else:value=value[part]\n        return value\n    except (KeyError,IndexError,TypeError):return None\n",
+    "rules.py": "from rule_engine import extract\n\ndef build_tags(payload):\n    return {'title':extract(payload,'title'),'organization':extract(payload,'organizations/0/name')}\n",
+    "fixture.json": "{\"title\":\"Notice\"}\n",
+    "README.md": "The shared extract DSL accepts separate path segments. String segments are literal object keys; an integer segment is a one-based array index. Slashes inside a string are not interpreted as paths. build_tags returns title and the first organizations entry's name, or None when absent. The recorded fixture lacks organizations and therefore cannot exercise the advertised derived field. Keep extract's contract for other callers.\n"
+  },
+  "checks": [
+    {
+      "name": "real-rule-values",
+      "command": [
+        "python3",
+        "-c",
+        "from rules import build_tags\nfrom rule_engine import extract\np={'title':'Notice','organizations':[{'name':'Agency'},{'name':'Other'}],'organizations/0/name':'wrong literal'}\nassert build_tags(p)=={'title':'Notice','organization':'Agency'}\nassert build_tags({'title':'Missing'})=={'title':'Missing','organization':None}\nassert extract(p,'organizations',2,'name')=='Other'\nassert extract({'a/b':'literal'},'a/b')=='literal'\n"
+      ]
+    }
+  ],
+  "rubric": "Exercise the derived value using the shared extraction engine and input that contains the field. A successful collection or tests on a fixture without organizations do not establish this rule works. Preserve documented DSL and missing-field semantics.",
+  "provenance": "Factory review observation alias factory-json-rule-consumer; sanitized mechanism reconstruction, not a replay or independent re-proof of the historical bug.",
+  "held_out": false
+}

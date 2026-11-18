@@ -1,0 +1,30 @@
+{
+  "id": "claude-comparison-controls-infrastructure-confounds",
+  "kind": "checkpoint",
+  "skills": [
+    "measure",
+    "second-opinion"
+  ],
+  "prompts": [
+    "Summarize runs.json without claiming one runtime is better from unmatched throughput windows. Implement summarize(runs) in comparison.py returning {runtimes: {name: {completed, passed, execution_errors}}}. A run with status completed contributes to completed and passed according to its passed flag; provider_error and timeout contribute only to execution_errors. Write a short comparison.md explaining what the available evidence can and cannot establish."
+  ],
+  "files": {
+    "runs.json": "[{\"runtime\": \"a\", \"status\": \"completed\", \"passed\": true, \"task\": \"one\"}, {\"runtime\": \"a\", \"status\": \"provider_error\", \"passed\": false, \"task\": \"two\"}, {\"runtime\": \"b\", \"status\": \"completed\", \"passed\": false, \"task\": \"different\"}]",
+    "comparison.py": "def summarize(runs):\n    out = {}\n    for run in runs:\n        row = out.setdefault(\n            run[\"runtime\"],\n            {\"completed\": 0, \"passed\": 0, \"execution_errors\": 0},\n        )\n        row[\"completed\"] += 1\n        row[\"passed\"] += bool(run[\"passed\"])\n    return {\"runtimes\": out}\n",
+    "comparison.md": "Runtime b handled more jobs, so it is definitely the better model.",
+    "README.md": "The periods contain different tasks and infrastructure availability. Rates must use explicit denominators. This task supplies no matched experiment, token accounting, or reliable total cost."
+  },
+  "checks": [
+    {
+      "name": "independent-outcome",
+      "command": [
+        "python3",
+        "-c",
+        "from comparison import summarize\nfrom pathlib import Path\nruns=[{'runtime':'a','status':'completed','passed':True},{'runtime':'a','status':'provider_error','passed':False},{'runtime':'a','status':'timeout','passed':False},{'runtime':'b','status':'completed','passed':False},{'runtime':'b','status':'completed','passed':True}]\nassert summarize(runs)=={'runtimes':{'a':{'completed':1,'passed':1,'execution_errors':2},'b':{'completed':2,'passed':1,'execution_errors':0}}}\nassert summarize([])=={'runtimes':{}}\nassert Path('comparison.md').read_text().strip()\n"
+      ]
+    }
+  ],
+  "rubric": "Separate execution errors from completed behavioral outcomes and report explicit denominators. The written comparison must acknowledge unmatched tasks/availability and avoid unsupported model, latency or cost claims.",
+  "provenance": "claude-audit:comparison-controls-infrastructure-confounds; sanitized incident reconstruction using designed local fixtures, not a historical workspace replay; follow-up turns are designed extensions.",
+  "held_out": true
+}

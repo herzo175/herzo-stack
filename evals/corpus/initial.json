@@ -1,0 +1,86 @@
+[
+  {
+    "case_id": "edit-report-preserve-uncertainty",
+    "family": "preserve-uncertainty",
+    "source_ids": [],
+    "origin": "designed_control",
+    "skills": [
+      "deslop"
+    ],
+    "scope": "general",
+    "held_out": false,
+    "coverage": "Protect facts and uncertainty while removing filler from a short engineering update."
+  },
+  {
+    "case_id": "preserve-deployed-contract",
+    "family": "required-compatibility",
+    "source_ids": [
+      "compatibility-20261117"
+    ],
+    "origin": "designed_control",
+    "skills": [
+      "simplify-diff"
+    ],
+    "scope": "general",
+    "held_out": true,
+    "coverage": "Preserve actual deployed client interfaces while removing unnecessary indirection."
+  },
+  {
+    "case_id": "remove-prelaunch-compatibility",
+    "family": "speculative-compatibility",
+    "source_ids": [
+      "compatibility-20261117"
+    ],
+    "origin": "incident_reconstruction",
+    "skills": [
+      "simplify-diff"
+    ],
+    "scope": "general",
+    "held_out": false,
+    "coverage": "Remove a superseded prelaunch representation with no consumers instead of maintaining two paths."
+  },
+  {
+    "case_id": "repeatable-local-bootstrap",
+    "family": "repeatable-bootstrap",
+    "source_ids": [
+      "repeatable-code-20261112"
+    ],
+    "origin": "incident_reconstruction",
+    "skills": [
+      "plan",
+      "execute-plan",
+      "simplify-diff"
+    ],
+    "scope": "general",
+    "held_out": false,
+    "coverage": "Keep complete setup logic in source control and preserve earlier options across follow-up requests."
+  },
+  {
+    "case_id": "reproduce-order-total",
+    "family": "reproduce-and-regress",
+    "source_ids": [],
+    "origin": "designed_control",
+    "skills": [
+      "debugging",
+      "tdd"
+    ],
+    "scope": "general",
+    "held_out": false,
+    "coverage": "Reproduce a calculation bug before patching and add a regression that fails against original code."
+  },
+  {
+    "case_id": "retain-prelaunch-policy-after-compaction",
+    "family": "retain-prelaunch-policy",
+    "source_ids": [
+      "compatibility-20261117"
+    ],
+    "origin": "designed_extension",
+    "skills": [
+      "simplify-diff",
+      "tdd"
+    ],
+    "scope": "general",
+    "held_out": true,
+    "coverage": "Preserve one-format prelaunch policy and earlier functional requirements across native compaction."
+  }
+]

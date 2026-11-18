@@ -10,10 +10,18 @@ lines = ["## Skill evaluation results", "", "Behavioral verdicts are report-only
 lines += ["| Arm | Case | Execution | Checks | Behavior |", "|---|---|---|---|---|"]
 for arm in ["baseline", "candidate"]:
     path = root / arm / "summary.json"
-    if not path.is_file():
-        lines.append(f"| {arm} | — | No report | — | — |")
-        continue
-    for row in json.loads(path.read_text()):
+    if path.is_file():
+        rows = json.loads(path.read_text())
+    else:
+        rows = [
+            json.loads(item.read_text()) for item in sorted((root / arm).glob("*/verdict.json"))
+        ]
+        if not rows:
+            if (root / arm).exists():
+                lines.append(f"| {arm} | — | No completed case report | — | — |")
+            continue
+        lines.append(f"| {arm} | — | Partial run; completed cases below | — | — |")
+    for row in rows:
         assertions = row.get("assertions", {})
         checks = [v["passed"] for k, v in assertions.items() if k.startswith("check_")]
         behavior = assertions.get("behavior", {}).get("passed")

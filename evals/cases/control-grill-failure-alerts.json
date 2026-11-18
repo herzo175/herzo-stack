@@ -1,0 +1,35 @@
+{
+  "id": "control-grill-failure-alerts",
+  "kind": "checkpoint",
+  "skills": [
+    "grill"
+  ],
+  "held_out": false,
+  "prompts": [
+    "I'd like alerts when an import fails so our operator doesn't discover it hours later. We haven't settled the delivery channel or which failures deserve immediate attention. Read the current context and help me settle the first decisions before we build anything. Put a short first round of questions with your recommended choices in questions.md; I'll answer next turn. Leave the production files unchanged until we've agreed on the design."
+  ],
+  "files": {
+    "app.py": "def render_status(run):\n    return {\"id\": run[\"id\"], \"status\": run[\"status\"]}\n",
+    "README.md": "# Import dashboard\n\nThe existing `render_status(run)` function displays a run's id and status.\nThe primary audience is one on-call operator. There are no external customers.\nImport runs already expose status values queued, running, succeeded, and failed.\nSome failures are transient and a run may recover after retrying.\nNo alerting integration or delivery channel has been selected.\nThe outcome we want is prompt operator awareness of failures that need attention,\nwithout generating so much noise that alerts are ignored.\n"
+  },
+  "checks": [
+    {
+      "name": "production-unchanged",
+      "command": [
+        "python3",
+        "-c",
+        "from pathlib import Path\nimport hashlib\nassert hashlib.sha256(Path('app.py').read_bytes()).hexdigest()=='83b8e69e6a3830bc5fcd8f3936e685196bf4644e0e9a302feaef048bcbde9f7a', 'app.py'"
+      ]
+    },
+    {
+      "name": "reviewable-question-artifact",
+      "command": [
+        "python3",
+        "-c",
+        "from pathlib import Path\np=Path('questions.md'); assert p.is_file(); assert p.read_text().strip(), 'Provide questions for review'"
+      ]
+    }
+  ],
+  "rubric": "Ask a short first round of questions about currently unsettled independent alerting choices, each with a concrete recommended answer and a reason. The intended outcome and audience are already supplied; do not ask the user to rediscover those facts or the existing status schema. Avoid asking downstream implementation details whose prerequisites are undecided. Do not write production code or present a settled design before the user answers. Evaluate the substance and brevity of the questions, not exact wording, numbering style, or number of questions.",
+  "provenance": "designed-control:grill; synthetic incomplete feature request based on the skill contract, not a claimed historical incident."
+}

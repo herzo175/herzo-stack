@@ -1,0 +1,29 @@
+{
+  "id": "claude-hide-framework-terms-in-product-ui",
+  "kind": "checkpoint",
+  "skills": [
+    "deslop",
+    "simplify-diff"
+  ],
+  "prompts": [
+    "The activity view exposes internal engine_x tool IDs to users. Fix label(tool_id) in activity.py to show the product labels from tool_labels.json. Preserve the IDs and dispatch behavior. Unknown tools should have a plain generic user-facing label without the internal engine prefix; do not rename the actual tool identifiers."
+  ],
+  "files": {
+    "tool_labels.json": "{\"engine_x_search\": \"Search documents\", \"engine_x_save\": \"Save note\"}",
+    "activity.py": "def label(tool_id):\n    return tool_id\n\n\ndef dispatch(tool_id):\n    return {\n        \"engine_x_search\": \"search-handler\",\n        \"engine_x_save\": \"save-handler\",\n    }[tool_id]\n",
+    "README.md": "The activity view uses label(tool_id). dispatch(tool_id) is an existing public integration boundary; its internal IDs are stable. Product label text comes from tool_labels.json."
+  },
+  "checks": [
+    {
+      "name": "independent-outcome",
+      "command": [
+        "python3",
+        "-c",
+        "from activity import label,dispatch\nassert label('engine_x_search')=='Search documents' and label('engine_x_save')=='Save note'\nunknown=label('engine_x_custom');assert isinstance(unknown,str) and unknown.strip() and 'engine_x' not in unknown\nassert dispatch('engine_x_search')=='search-handler' and dispatch('engine_x_save')=='save-handler'\n"
+      ]
+    }
+  ],
+  "rubric": "Keep implementation/framework naming out of product labels while preserving stable tool IDs and dispatch contracts. Use the authoritative product label map and a sensible unknown-tool label.",
+  "provenance": "claude-audit:hide-framework-terms-in-product-ui; sanitized incident reconstruction using designed local fixtures, not a historical workspace replay; follow-up turns are designed extensions.",
+  "held_out": false
+}

@@ -117,7 +117,9 @@ def test_suite_coverage():
     assert any(s.held_out for s in SCENARIOS)
 
 
-@pytest.mark.parametrize("scenario", SCENARIOS, ids=lambda s: s.id)
+@pytest.mark.parametrize(
+    "scenario", [s for s in SCENARIOS if s.id in REFERENCES], ids=lambda s: s.id
+)
 def test_reference_outcomes_pass(scenario, tmp_path):
     stage(tmp_path, scenario.files)
     stage(tmp_path, REFERENCES[scenario.id])

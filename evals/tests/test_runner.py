@@ -1,6 +1,7 @@
 import json
 import subprocess
 import sys
+from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
@@ -75,6 +76,8 @@ async def test_repetitions_persist_evidence_and_remove_secret(scenario, tmp_path
         evidence = tmp_path / "arm" / row["trial_id"] / "result.json"
         assert evidence.is_file()
         assert json.loads(evidence.read_text())["trial_id"] == row["trial_id"]
+        verdict = evidence.with_name("verdict.json")
+        assert json.loads(verdict.read_text()) == row
     for path in (tmp_path / "arm").rglob("*.json"):
         assert key not in path.read_text()
     assert all(row["assertions"]["check_meaning"]["passed"] for row in rows)
@@ -145,3 +148,122 @@ def test_fixture_paths_cannot_escape_or_override_agent_resources(scenario):
         data["files"] = {path: "bad"}
         with pytest.raises(ValueError, match="Unsafe"):
             Scenario.model_validate(data)
+
+
+async def test_completed_case_verdict_survives_later_cancellation(scenario, tmp_path, monkeypatch):
+    import asyncio
+
+    monkeypatch.setenv("OPENROUTER_API_KEY", "private-key")
+    started_second = asyncio.Event()
+    count = 0
+
+    async def execute(case, settings, output):
+        nonlocal count
+        count += 1
+        if count == 2:
+            started_second.set()
+            await asyncio.Event().wait()
+        return TrialResult(
+            status="completed",
+            checks=[
+                CheckResult(name="meaning", passed=True, exit_code=0, output="ok"),
+            ],
+        )
+
+    monkeypatch.setitem(sys.modules, "herzo_evals.runtime", SimpleNamespace(execute=execute))
+    monkeypatch.setattr(subprocess, "run", lambda *_, **__: SimpleNamespace(stdout="sha256:fake"))
+    settings = Settings(
+        runtime="pi", model="provider/agent", judge_model="provider/judge", skills_root=None
+    )
+    run = asyncio.create_task(
+        run_experiment(
+            [scenario],
+            settings,
+            tmp_path / "arm",
+            2,
+            1,
+            "candidate",
+            judge=False,
+        )
+    )
+    await asyncio.wait_for(started_second.wait(), timeout=3)
+    run.cancel()
+    with pytest.raises(asyncio.CancelledError):
+        await run
+    verdicts = list((tmp_path / "arm").glob("*/verdict.json"))
+    assert len(verdicts) == 1
+    assert json.loads(verdicts[0].read_text())["assertions"]["check_meaning"]["passed"]
+    assert not (tmp_path / "arm/summary.json").exists()
+
+
+def test_actions_summary_shows_completed_verdict_after_interruption(tmp_path):
+    case = tmp_path / "candidate/case-123"
+    case.mkdir(parents=True)
+    (case / "verdict.json").write_text(
+        json.dumps(
+            {
+                "case": "interrupted-later",
+                "status": "completed",
+                "assertions": {
+                    "check_meaning": {"passed": True},
+                    "behavior": {"passed": False},
+                },
+            }
+        )
+    )
+    tool = Path(__file__).parents[1] / "tools/summarize.py"
+    result = subprocess.run(
+        [sys.executable, str(tool), str(tmp_path)], capture_output=True, text=True, check=True
+    )
+    assert "Partial run" in result.stdout
+    assert "interrupted-later" in result.stdout
+    assert "| 1/1 | fail |" in result.stdout
+
+
+def test_characterization_runs_one_arm_and_keeps_behavior_failures_report_only(
+    tmp_path, monkeypatch
+):
+    from herzo_evals import cli
+
+    called = []
+
+    async def characterize(cases, settings, output, repeat, concurrency, label, **kwargs):
+        called.append((label, repeat))
+        output.mkdir(parents=True)
+        return [
+            {
+                "case": cases[0].id,
+                "status": "completed",
+                "assertions": {
+                    "judge_available": {"passed": True},
+                    "behavior": {"passed": False},
+                },
+            }
+        ]
+
+    async def unexpected_pair(*args, **kwargs):
+        raise AssertionError("Characterization must not pay for a duplicate baseline arm")
+
+    monkeypatch.setattr(cli, "run_experiment", characterize)
+    monkeypatch.setattr(cli, "paired_experiment", unexpected_pair)
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            "herzo-evals",
+            "--candidate-only",
+            "--case",
+            "remove-prelaunch-compatibility",
+            "--model",
+            "provider/agent",
+            "--judge-model",
+            "provider/judge",
+            "--output",
+            str(tmp_path / "out"),
+        ],
+    )
+    cli.main()
+    report = json.loads((tmp_path / "out/comparison.json").read_text())
+    assert called == [("candidate", 1)]
+    assert report["mode"] == "characterization" and report["baseline_revision"] is None
+    assert set(report["arms"]) == {"candidate"}

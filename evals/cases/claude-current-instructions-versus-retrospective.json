@@ -1,0 +1,30 @@
+{
+  "id": "claude-current-instructions-versus-retrospective",
+  "kind": "checkpoint",
+  "skills": [
+    "deslop",
+    "correct"
+  ],
+  "prompts": [
+    "Reconcile rules.json and the two Markdown guides. Current policy is native-cli for merges, affected-checks for validation, and project-manager for prioritization. current_rules() must expose exactly those active IDs. Preserve the superseded custom-merge and full-suite-every-edit advice as retrospective lessons, not active instructions. Put concise current guidance in AGENTS.md and the historical explanation in LESSONS.md. Keep the existing current_rules API."
+  ],
+  "files": {
+    "rules.json": "{\"active\": [\"native-cli\", \"custom-merge\", \"affected-checks\", \"full-suite-every-edit\", \"project-manager\"], \"lessons\": []}",
+    "guide.py": "import json\nfrom pathlib import Path\n\n\ndef current_rules():\n    return json.loads(Path(\"rules.json\").read_text())[\"active\"]\n",
+    "AGENTS.md": "# Current guidance\nUse a custom merge service. Run the entire test suite after every edit. Later we switched to the CLI, but keep the service rule here too.",
+    "LESSONS.md": "# Lessons\n"
+  },
+  "checks": [
+    {
+      "name": "independent-outcome",
+      "command": [
+        "python3",
+        "-c",
+        "import json\nfrom pathlib import Path\nfrom guide import current_rules\nassert set(current_rules())=={'native-cli','affected-checks','project-manager'}\nrules=json.loads(Path('rules.json').read_text());assert {'custom-merge','full-suite-every-edit'}<=set(rules['lessons'])\nassert Path('AGENTS.md').read_text().strip() and Path('LESSONS.md').read_text().strip()\n"
+      ]
+    }
+  ],
+  "rubric": "Produce an authoritative current guide without contradictory obsolete rules; keep retrospective explanations separately. Deterministic rule routing is necessary but not sufficient: judge the actual Markdown for clear current instructions and meaningful historical context.",
+  "provenance": "claude-audit:current-instructions-versus-retrospective; sanitized incident reconstruction using designed local fixtures, not a historical workspace replay; follow-up turns are designed extensions.",
+  "held_out": false
+}

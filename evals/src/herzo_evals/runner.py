@@ -11,6 +11,8 @@ from typing import Any
 from pydantic_ai.models.openrouter import OpenRouterModel
 from pydantic_ai.providers.openrouter import OpenRouterProvider
 from pydantic_evals import Case, Dataset
+from pydantic_evals.lifecycle import CaseLifecycle
+from pydantic_evals.reporting import ReportCase
 
 from herzo_evals.grading import BehaviorJudge, OutcomeChecks
 from herzo_evals.models import Scenario, Settings, TrialResult
@@ -63,6 +65,21 @@ def skill_fingerprint(root: Path | None, scenarios: list[Scenario]) -> str:
     return digest.hexdigest()
 
 
+def result_row(case: ReportCase) -> dict[str, Any]:
+    return {
+        "case": case.name,
+        "trial_id": case.output.trial_id,
+        "status": case.output.status,
+        "duration_seconds": case.output.duration,
+        "compactions": case.output.compactions,
+        "usage": case.output.usage,
+        "assertions": {
+            name: {"passed": bool(reason.value), "reason": reason.reason}
+            for name, reason in case.assertions.items()
+        },
+    }
+
+
 async def run_experiment(
     scenarios: list[Scenario],
     settings: Settings,
@@ -92,6 +109,7 @@ async def run_experiment(
         "settings": settings.model_dump(mode="json"),
         "skills_sha256": fingerprint,
         "image_id": image_id,
+        "case_ids": [case.id for case in scenarios],
         "cases_sha256": hashlib.sha256(
             json.dumps([case.model_dump() for case in scenarios], sort_keys=True).encode()
         ).hexdigest(),
@@ -121,6 +139,12 @@ async def run_experiment(
         (trial_dir / "result.json").write_text(result.model_dump_json(indent=2) + "\n")
         return result
 
+    class SaveCompletedCase(CaseLifecycle):
+        async def teardown(self, case: Any) -> None:
+            if isinstance(case, ReportCase):
+                target = output / case.output.trial_id / "verdict.json"
+                target.write_text(json.dumps(redact(result_row(case), key), indent=2) + "\n")
+
     report = await dataset.evaluate(
         task,
         name=label,
@@ -128,23 +152,9 @@ async def run_experiment(
         repeat=repeat,
         progress=False,
         metadata=metadata,
+        lifecycle=SaveCompletedCase,
     )
-    rows = []
-    for case in report.cases:
-        rows.append(
-            {
-                "case": case.name,
-                "trial_id": case.output.trial_id,
-                "status": case.output.status,
-                "duration_seconds": case.output.duration,
-                "compactions": case.output.compactions,
-                "usage": case.output.usage,
-                "assertions": {
-                    name: {"passed": bool(reason.value), "reason": reason.reason}
-                    for name, reason in case.assertions.items()
-                },
-            }
-        )
+    rows = [result_row(case) for case in report.cases]
     for failure in report.failures:
         rows.append({"case": failure.name, "status": "evaluation_error"})
     (output / "summary.json").write_text(json.dumps(redact(rows, key), indent=2) + "\n")

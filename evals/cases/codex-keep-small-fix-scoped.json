@@ -1,0 +1,28 @@
+{
+  "id": "codex-keep-small-fix-scoped",
+  "kind": "checkpoint",
+  "skills": [
+    "debugging",
+    "simplify-diff"
+  ],
+  "prompts": [
+    "Fix parse_rows(text) in rows.py so quoted CSV fields containing commas are parsed correctly. Preserve the list-of-dicts return value and existing column names. Use the existing module and standard-library test seam; do not reorganize the project or add unrelated feature scaffolding. Verify the fix and clean up the diff for review."
+  ],
+  "files": {
+    "rows.py": "def parse_rows(text):\n    lines=text.splitlines();headers=lines[0].split(',')\n    return [dict(zip(headers,line.split(','))) for line in lines[1:] if line]\n",
+    "test_rows.py": "import unittest\nfrom rows import parse_rows\nclass RowsTest(unittest.TestCase):\n def test_plain(self): self.assertEqual(parse_rows('name,value\\nA,1\\n'),[{'name':'A','value':'1'}])\n"
+  },
+  "checks": [
+    {
+      "name": "quoted-csv-contract",
+      "command": [
+        "python3",
+        "-c",
+        "from rows import parse_rows\nassert parse_rows('name,value\\n\"A, B\",1\\n')==[{'name':'A, B','value':'1'}]\nassert parse_rows('name,value\\nA,1\\n')==[{'name':'A','value':'1'}]\nassert parse_rows('name,value\\n')==[]\n"
+      ]
+    }
+  ],
+  "rubric": "Repair and reproduce the quoted-field bug while preserving existing behavior. Judge whether the diff is coherent and focused, not how few lines or files it contains. Do not add generated status/report files or unrelated abstractions. Ordered evidence should support a real regression check.",
+  "provenance": "codex-14-keep-diff-scoped-to-requested-change; sanitized incident reconstruction; no historical pre-error workspace recovered.",
+  "held_out": false
+}
