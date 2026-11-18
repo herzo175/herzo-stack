@@ -24,6 +24,16 @@ on:
           - openai/gpt-6.1-terra
           - anthropic/claude-opus-5.5
         default: deepseek/deepseek-v4.1-flash
+      judge_model:
+        description: Independent judge model (identical for both arms)
+        required: true
+        type: choice
+        options:
+          - google/gemini-4-hydrogen
+          - openai/gpt-6-luna
+          - anthropic/claude-haiku-5.5
+          - minimax/minimax-m3.1-flash
+        default: google/gemini-4-hydrogen
   schedule:
     - cron: '17 5 * * 1'
 
@@ -37,7 +47,7 @@ concurrency:
 env:
   EVAL_RUNTIME: ${{ inputs.harness || 'pi' }}
   EVAL_MODEL: ${{ inputs.model || 'deepseek/deepseek-v4.1-flash' }}
-  EVAL_JUDGE_MODEL: ${{ vars.EVAL_JUDGE_MODEL || 'openai/gpt-5-mini' }}
+  EVAL_JUDGE_MODEL: ${{ inputs.judge_model || 'google/gemini-4-hydrogen' }}
 
 jobs:
   offline:
@@ -89,7 +99,7 @@ jobs:
         id: plan
         run: |
           matrix="$(uv run --project evals --frozen herzo-evals --matrix \
-            --runtime "$EVAL_RUNTIME" --model "$EVAL_MODEL" \
+            --runtime "$EVAL_RUNTIME" --model "$EVAL_MODEL" --judge-model "$EVAL_JUDGE_MODEL" \
             --kind checkpoint --kind episode --include-held-out --repeat 1)"
           printf 'matrix=%s\n' "$matrix" >> "$GITHUB_OUTPUT"
 
