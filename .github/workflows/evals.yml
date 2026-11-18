@@ -9,15 +9,20 @@ on:
   workflow_dispatch:
     inputs:
       runtime:
-        description: Coding runtime
+        description: Coding runtime (all and compaction suites require Pi)
         type: choice
         options: [pi, opencode]
         default: pi
       suite:
-        description: Episode type (compaction requires Pi)
+        description: Episode type
         type: choice
-        options: [checkpoint, episode, compaction]
+        options: [checkpoint, episode, compaction, all]
         default: checkpoint
+      mode:
+        description: Compare skill versions, or establish the current pack baseline
+        type: choice
+        options: [paired, characterization]
+        default: paired
       model:
         description: Explicit OpenRouter agent model ID (provider/model)
         required: true
@@ -27,7 +32,7 @@ on:
         required: true
         type: string
       baseline:
-        description: Released skill commit to compare
+        description: Released skill commit for paired mode
         required: true
         default: e45aa78eaec30be8c291989a766ba9153f0e7626
         type: string
@@ -51,8 +56,19 @@ permissions:
   contents: read
 
 concurrency:
-  group: skill-evals-${{ github.event_name }}-${{ github.ref }}
+  group: skill-evals-${{ github.event_name }}-${{ github.event_name == 'workflow_dispatch' && github.run_id || github.ref }}
   cancel-in-progress: true
+
+env:
+  EVAL_RUNTIME: ${{ inputs.runtime || 'pi' }}
+  EVAL_SUITE: ${{ inputs.suite || (github.event_name == 'schedule' && 'compaction') || 'checkpoint' }}
+  EVAL_MODE: ${{ inputs.mode || 'paired' }}
+  EVAL_MODEL: ${{ inputs.model || vars.EVAL_MODEL }}
+  EVAL_JUDGE_MODEL: ${{ inputs.judge_model || vars.EVAL_JUDGE_MODEL }}
+  EVAL_BASELINE: ${{ inputs.baseline || vars.EVAL_BASELINE || 'e45aa78eaec30be8c291989a766ba9153f0e7626' }}
+  EVAL_REPEAT: ${{ inputs.repeat || '1' }}
+  EVAL_HELD_OUT: ${{ github.event_name == 'schedule' || inputs.include_held_out }}
+  EVAL_CASE: ${{ inputs.case_id }}
 
 jobs:
   offline:
@@ -81,7 +97,7 @@ jobs:
           --tmpfs /skills:mode=1777
           --entrypoint python3 herzo-evals:local /opt/herzo-evals/smoke.py
 
-  behavioral:
+  plan:
     needs: offline
     if: >-
       github.event_name == 'workflow_dispatch' ||
@@ -89,7 +105,41 @@ jobs:
       (github.event_name == 'pull_request' && vars.EVAL_PR_RUNS_ENABLED == 'true' &&
        github.event.pull_request.head.repo.full_name == github.repository)
     runs-on: ubuntu-latest
-    timeout-minutes: 90
+    timeout-minutes: 5
+    outputs:
+      matrix: ${{ steps.plan.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78 # v7
+        with:
+          version: '0.9.9'
+          python-version: '3.11'
+      - name: Select disjoint bounded shards
+        id: plan
+        run: |
+          kinds=() held_out=() selected_case=() mode=()
+          if [[ "$EVAL_RUNTIME" != "pi" && ( "$EVAL_SUITE" == "all" || "$EVAL_SUITE" == "compaction" ) ]]; then
+            echo "All/compaction suites require Pi; select checkpoint or episode for OpenCode."
+            exit 1
+          fi
+          if [[ "$EVAL_SUITE" != "all" ]]; then kinds+=(--kind "$EVAL_SUITE"); fi
+          if [[ "$EVAL_HELD_OUT" == "true" ]]; then held_out+=(--include-held-out); fi
+          if [[ -n "$EVAL_CASE" ]]; then selected_case+=(--case "$EVAL_CASE"); fi
+          if [[ "$EVAL_MODE" == "characterization" ]]; then mode+=(--candidate-only); fi
+          matrix="$(uv run --project evals --frozen herzo-evals --matrix --repeat "$EVAL_REPEAT" "${mode[@]}" "${kinds[@]}" "${held_out[@]}" "${selected_case[@]}")"
+          printf 'matrix=%s\n' "$matrix" >> "$GITHUB_OUTPUT"
+
+  behavioral:
+    needs: [offline, plan]
+    if: needs.plan.result == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    strategy:
+      fail-fast: false
+      max-parallel: 2
+      matrix: ${{ fromJSON(needs.plan.outputs.matrix) }}
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
@@ -101,35 +151,30 @@ jobs:
           python-version: '3.11'
       - run: uv sync --project evals --frozen
       - run: docker build --tag herzo-evals:local evals/container
-      - name: Run paired trials
+      - name: Run eval trials
         env:
           OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
-          EVAL_RUNTIME: ${{ inputs.runtime || 'pi' }}
-          EVAL_SUITE: ${{ inputs.suite || (github.event_name == 'schedule' && 'compaction') || 'checkpoint' }}
-          EVAL_MODEL: ${{ inputs.model || vars.EVAL_MODEL }}
-          EVAL_JUDGE_MODEL: ${{ inputs.judge_model || vars.EVAL_JUDGE_MODEL }}
-          EVAL_BASELINE: ${{ inputs.baseline || vars.EVAL_BASELINE || 'e45aa78eaec30be8c291989a766ba9153f0e7626' }}
-          EVAL_REPEAT: ${{ inputs.repeat || '1' }}
-          EVAL_HELD_OUT: ${{ github.event_name == 'schedule' || inputs.include_held_out }}
-          EVAL_CASE: ${{ inputs.case_id }}
+          SHARD_INDEX: ${{ matrix.index }}
+          SHARD_TOTAL: ${{ matrix.total }}
         run: |
-          held_out=()
-          selected_case=()
-          if [[ -n "$EVAL_CASE" ]]; then selected_case+=(--case "$EVAL_CASE"); fi
+          kinds=() held_out=() selected_case=() baseline=(--baseline-ref "$EVAL_BASELINE")
+          if [[ "$EVAL_SUITE" != "all" ]]; then kinds+=(--kind "$EVAL_SUITE"); fi
           if [[ "$EVAL_HELD_OUT" == "true" ]]; then held_out+=(--include-held-out); fi
+          if [[ -n "$EVAL_CASE" ]]; then selected_case+=(--case "$EVAL_CASE"); fi
+          if [[ "$EVAL_MODE" == "characterization" ]]; then baseline=(--candidate-only); fi
           uv run --project evals --frozen herzo-evals \
-            --runtime "$EVAL_RUNTIME" --kind "$EVAL_SUITE" \
+            --runtime "$EVAL_RUNTIME" "${kinds[@]}" \
             --model "$EVAL_MODEL" --judge-model "$EVAL_JUDGE_MODEL" \
-            --baseline-ref "$EVAL_BASELINE" --repeat "$EVAL_REPEAT" \
+            "${baseline[@]}" --repeat "$EVAL_REPEAT" \
             --concurrency 1 --timeout 600 "${held_out[@]}" "${selected_case[@]}" \
-            --output evals/results/ci
+            --shard "$SHARD_INDEX/$SHARD_TOTAL" --output evals/results/ci
       - name: Publish review summary
         if: always()
         run: uv run --project evals --frozen python evals/tools/summarize.py evals/results/ci
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         if: always()
         with:
-          name: skill-eval-evidence-${{ github.run_id }}
+          name: skill-eval-evidence-${{ github.run_id }}-${{ matrix.index }}
           path: evals/results/ci
           if-no-files-found: ignore
           retention-days: 7

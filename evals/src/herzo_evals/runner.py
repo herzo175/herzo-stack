@@ -109,6 +109,7 @@ async def run_experiment(
         "settings": settings.model_dump(mode="json"),
         "skills_sha256": fingerprint,
         "image_id": image_id,
+        "case_ids": [case.id for case in scenarios],
         "cases_sha256": hashlib.sha256(
             json.dumps([case.model_dump() for case in scenarios], sort_keys=True).encode()
         ).hexdigest(),

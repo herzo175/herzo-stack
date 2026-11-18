@@ -19,8 +19,8 @@ uv run --project evals herzo-evals --list --include-held-out
 
 Set `OPENROUTER_API_KEY` in your environment. Keep it out of prompts, command arguments, Git,
 and transcripts. A local ignored `.secrets/openrouter.env` can hold `OPENROUTER_API_KEY=…`;
-load only that value using your secret manager or environment loader. The runner does not
-execute or shell-source dotenv files. GitHub uses the Actions secret of the same name.
+load only that value using your secret manager or environment loader. Use `uv run --env-file .secrets/openrouter.env --project evals …` to load it without
+executing shell code. The runner does not execute or shell-source dotenv files. GitHub uses the Actions secret of the same name.
 
 Choose explicit OpenRouter model IDs for both roles. The judge can be different from the agent;
 both use OpenRouter. Use the same agent model when comparing skill versions. The suite does
@@ -33,6 +33,11 @@ uv run --project evals herzo-evals \
   --baseline-ref e45aa78eaec30be8c291989a766ba9153f0e7626 \
   --repeat 2 --concurrency 1 --output evals/results/first-comparison
 ```
+
+To establish the current pack's baseline without paying for two identical skill trees, replace
+`--baseline-ref …` with `--candidate-only`. This is characterization, not evidence of a skill
+improvement. `--shard INDEX/TOTAL` selects a deterministic disjoint partition; `--matrix` prints
+the matching bounded CI matrix without Docker, model calls, or credentials.
 
 Each arm gets the same scenarios, runtime, model, and limits. The baseline's skill tree is
 restored from the exact Git commit; the candidate uses `skills/` from this checkout. Manifests
@@ -63,14 +68,16 @@ requires that the original instruction is removed from the active context and re
 summary. This is an accelerated stress case, not the runtime's default retention policy. It does
 not establish reliability across hours of work or natural
 context exhaustion. OpenCode compaction is currently unsupported and rejected explicitly.
-See [case provenance and limitations](CASES.md). The held-out flag separates development cases
+See [the audited corpus](CORPUS.md) and [initial case limitations](CASES.md). The held-out flag separates development cases
 from a release check set; once you tune against a case, treat it as development data and add
 new held-out cases. It is a workflow convention, not access control.
 
 ## Grading and results
 
 Each trial saves normalized chronological events, the final code diff, independent checks,
-termination status, observed usage, and elapsed duration. Private raw conversation archives are
+termination status, observed usage, and elapsed duration. Each completed case also saves its
+verdict immediately using Pydantic's lifecycle hook, so interrupting a later case does not erase
+already graded results. Private raw conversation archives are
 never uploaded. Fixture prompts and source are visible to the coding agent; rubric and grader
 commands stay outside its session. Independent checks run after the agent has stopped.
 
@@ -95,10 +102,15 @@ an agent choosing the wrong implementation.
 ## GitHub Actions
 
 `.github/workflows/evals.yml` runs offline checks for relevant PRs and main changes. Use
-**Actions → Skill evals → Run workflow** for a bounded paired trial: choose a runtime, episode
+**Actions → Skill evals → Run workflow** for paired or characterization trials: choose a runtime, episode
 type, explicit agent/judge model IDs, baseline commit, and repetitions. Select a single case ID for a small pilot. Enable the held-out checkbox for release checks, including
 the compaction suite; ordinary PR runs exclude those cases. Full evidence is kept
-as an artifact for seven days; the job summary shows per-case results.
+as separate shard artifacts for seven days; the job summary shows per-case results.
+
+A full Pi selection uses the `all` suite. OpenCode supports the checkpoint and episode suites;
+manual compaction still requires Pi. Shards account for repetitions and both arms, reserve
+setup/cleanup time, and run at most two jobs concurrently. In characterization mode, each case
+runs once per requested repetition, with no duplicate baseline arm.
 
 Recurring paid runs are opt-in after measuring a pilot:
 

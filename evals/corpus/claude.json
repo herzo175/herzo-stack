@@ -27,7 +27,7 @@
     ],
     "scope": "general",
     "held_out": false,
-    "coverage": "Use the supplied existing CLI for status and merge instead of recreating its behavior. Preserve failed-CI and missing-review gates and avoid modifying the tool or introducing a redundant wrapper service."
+    "coverage": "Reuse the existing CLI for safe readiness enforcement and merging, including valid atomic rejection rather than an invented status-check algorithm."
   },
   {
     "case_id": "claude-agent-policy-not-dispatch-code",
@@ -210,7 +210,7 @@
     ],
     "scope": "general",
     "held_out": false,
-    "coverage": "Carry the explicit cutover correction through acceptance, pending schedules and final claims. After the second turn, do not execute or preserve alpha acceptance. Actual beta output determines success; retain the unrelated backup task."
+    "coverage": "Carry the corrected acceptance target through the callable, its actual CLI output and persisted result, removing obsolete scheduled work."
   },
   {
     "case_id": "claude-clean-known-source-defects-with-evidence",

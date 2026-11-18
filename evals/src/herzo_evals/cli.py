@@ -9,6 +9,7 @@ import tarfile
 import tempfile
 from pathlib import Path
 
+from herzo_evals.corpus import coverage, load_catalogue
 from herzo_evals.models import Settings
 from herzo_evals.runner import load_scenarios, paired_experiment, run_experiment
 from herzo_evals.selection import matrix_for, shard_cases
@@ -48,7 +49,7 @@ def parse_shard(value: str) -> tuple[int, int]:
         index, total = (int(part) for part in value.split("/"))
         shard_cases([], index, total)
     except ValueError as exc:
-        raise argparse.ArgumentTypeError("Use INDEX/TOTAL, with 0 <= INDEX < TOTAL <= 50") from exc
+        raise argparse.ArgumentTypeError("Use INDEX/TOTAL, with 0 <= INDEX < TOTAL <= 64") from exc
     return index, total
 
 
@@ -57,6 +58,7 @@ def parser() -> argparse.ArgumentParser:
     result.add_argument(
         "--list", action="store_true", help="List cases without credentials or Docker"
     )
+    result.add_argument("--coverage", action="store_true", help="Print selected corpus coverage")
     result.add_argument("--matrix", action="store_true", help="Print a bounded CI matrix as JSON")
     result.add_argument("--shard", type=parse_shard, default=(0, 1), metavar="INDEX/TOTAL")
     result.add_argument(
@@ -94,8 +96,26 @@ def main() -> None:
     scenarios = load_scenarios(args.cases, args.case, args.include_held_out)
     if args.kind:
         scenarios = [case for case in scenarios if case.kind in args.kind]
+    if args.coverage:
+        complete = load_scenarios(args.cases, [], True)
+        catalogue = load_catalogue(args.cases.parent / "corpus", complete)
+        print(
+            json.dumps(
+                coverage(scenarios, {case.id: catalogue[case.id] for case in scenarios}), indent=2
+            )
+        )
+        return
     if args.matrix:
-        print(json.dumps(matrix_for(scenarios)))
+        print(
+            json.dumps(
+                matrix_for(
+                    scenarios,
+                    repeat=args.repeat,
+                    arms=1 if args.candidate_only else 2,
+                    trial_seconds=args.timeout,
+                )
+            )
+        )
         return
     scenarios = shard_cases(scenarios, *args.shard)
     if args.list:
