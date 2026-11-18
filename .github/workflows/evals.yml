@@ -61,6 +61,7 @@ jobs:
       - uses: astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78 # v7
         with:
           version: '0.9.9'
+          python-version: '3.11'
       - run: uv sync --project evals --frozen
       - run: uv run --project evals --frozen ruff check evals
       - run: uv run --project evals --frozen ruff format --check evals
@@ -93,6 +94,7 @@ jobs:
       - uses: astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78 # v7
         with:
           version: '0.9.9'
+          python-version: '3.11'
       - run: uv sync --project evals --frozen
       - run: docker build --tag herzo-evals:local evals/container
       - name: Run paired trials

@@ -1,7 +1,6 @@
 import json
 import subprocess
 import sys
-from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
@@ -104,11 +103,40 @@ def test_held_out_excluded_and_unknown_id_rejected(tmp_path, scenario):
 
 
 def test_baseline_snapshot_is_exact_and_contains_only_skill_tree(tmp_path):
-    repo = Path(__file__).resolve().parents[2]
-    revision = snapshot_skills(repo, "e45aa78eaec30be8c291989a766ba9153f0e7626", tmp_path)
-    assert revision == "e45aa78eaec30be8c291989a766ba9153f0e7626"
-    assert (tmp_path / "skills/deslop/SKILL.md").is_file()
-    assert not (tmp_path / "evals").exists()
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    subprocess.run(["git", "init", "--quiet", str(repo)], check=True)
+    skill = repo / "skills/deslop/SKILL.md"
+    skill.parent.mkdir(parents=True)
+    skill.write_text("original skill")
+    (repo / "private-reference.txt").write_text("not an agent resource")
+    subprocess.run(["git", "-C", str(repo), "add", "."], check=True)
+    subprocess.run(
+        [
+            "git",
+            "-C",
+            str(repo),
+            "-c",
+            "user.name=Eval",
+            "-c",
+            "user.email=eval@example.invalid",
+            "commit",
+            "--quiet",
+            "-m",
+            "Initial skill",
+        ],
+        check=True,
+    )
+    revision = subprocess.check_output(
+        ["git", "-C", str(repo), "rev-parse", "HEAD"],
+        text=True,
+    ).strip()
+    skill.write_text("changed working tree")
+    destination = tmp_path / "baseline"
+    destination.mkdir()
+    assert snapshot_skills(repo, revision, destination) == revision
+    assert (destination / "skills/deslop/SKILL.md").read_text() == "original skill"
+    assert not (destination / "private-reference.txt").exists()
 
 
 def test_fixture_paths_cannot_escape_or_override_agent_resources(scenario):
