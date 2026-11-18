@@ -10,7 +10,7 @@ import tempfile
 from pathlib import Path
 
 from herzo_evals.corpus import coverage, load_catalogue
-from herzo_evals.models import Settings
+from herzo_evals.models import Settings, validate_model_pair
 from herzo_evals.runner import load_scenarios, paired_experiment, run_experiment
 from herzo_evals.selection import matrix_for, shard_cases
 
@@ -70,7 +70,7 @@ def parser() -> argparse.ArgumentParser:
     result.add_argument("--case", action="append", default=[])
     result.add_argument("--kind", choices=["checkpoint", "episode", "compaction"], action="append")
     result.add_argument("--include-held-out", action="store_true")
-    result.add_argument("--runtime", choices=["pi", "opencode"], default="pi")
+    result.add_argument("--runtime", choices=["pi", "opencode", "codex", "claude"], default="pi")
     result.add_argument("--model", help="Explicit OpenRouter model ID, e.g. provider/model")
     result.add_argument("--judge-model", help="Explicit OpenRouter judge model ID")
     result.add_argument("--image", default="herzo-evals:local")
@@ -93,6 +93,11 @@ def parser() -> argparse.ArgumentParser:
 
 def main() -> None:
     args = parser().parse_args()
+    if args.model:
+        try:
+            validate_model_pair(args.runtime, args.model)
+        except ValueError as exc:
+            raise SystemExit(str(exc)) from exc
     scenarios = load_scenarios(args.cases, args.case, args.include_held_out)
     if args.kind:
         scenarios = [case for case in scenarios if case.kind in args.kind]

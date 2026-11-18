@@ -35,7 +35,7 @@ def scenario():
 @pytest.fixture
 def settings():
     return Settings(
-        runtime="pi", model="vendor/model", judge_model="vendor/judge", skills_root=None
+        runtime="pi", model="qwen/qwen3.8-27b", judge_model="vendor/judge", skills_root=None
     )
 
 
@@ -47,7 +47,7 @@ def script(tmp_path, body):
 
 def payload(**updates):
     return {
-        "model": "vendor/model",
+        "model": "qwen/qwen3.8-27b",
         "max_output_tokens": 1024,
         "skills": [],
         "prompts": ["one", "two"],

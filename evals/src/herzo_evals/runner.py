@@ -113,6 +113,7 @@ async def run_experiment(
         "cases_sha256": hashlib.sha256(
             json.dumps([case.model_dump() for case in scenarios], sort_keys=True).encode()
         ).hexdigest(),
+        "output_token_limit_enforced": settings.runtime != "codex",
         "usage_scope": "agent-reported; excludes judge and may omit compaction",
         "judge_input_limit_chars": JUDGE_INPUT_LIMIT_CHARS,
         "repeat": repeat,

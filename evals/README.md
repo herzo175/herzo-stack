@@ -3,8 +3,8 @@
 This suite measures whether herzo-stack changes improve real coding-agent behavior. It is
 separate from Factory's tests for packaging and delivering skills.
 
-Pydantic Evals runs the experiments and graders. The coding agent remains the real Pi or
-OpenCode CLI, running inside a fresh Docker container for each conversation episode. OpenRouter
+Pydantic Evals runs the experiments and graders. The coding agent remains the real Pi, OpenCode, Codex or
+Claude Code CLI, running inside a fresh Docker container for each conversation episode. OpenRouter
 provides the agent and judge models. There is no fallback to an unrestricted local agent.
 
 ## Setup
@@ -29,25 +29,27 @@ not silently fall back to another model on an error.
 ```bash
 uv run --project evals herzo-evals \
   --runtime pi --kind checkpoint \
-  --model '<provider/agent-model>' --judge-model '<provider/judge-model>' \
-  --baseline-ref e45aa78eaec30be8c291989a766ba9153f0e7626 \
+  --model qwen/qwen3.8-27b --judge-model openai/gpt-5-mini \
+  --no-skill-baseline \
   --repeat 2 --concurrency 1 --output evals/results/first-comparison
 ```
 
-To establish the current pack's baseline without paying for two identical skill trees, replace
-`--baseline-ref …` with `--candidate-only`. This is characterization, not evidence of a skill
-improvement. `--shard INDEX/TOTAL` selects a deterministic disjoint partition; `--matrix` prints
-the matching bounded CI matrix without Docker, model calls, or credentials.
+Each arm gets the same scenarios, harness, model, judge and limits. `--no-skill-baseline`
+runs one arm without herzo-stack and one with each case's selected skills. This removes only
+herzo-stack; harness built-in instructions and tools remain in both arms. Manifests record
+content hashes, model IDs, limits and Docker image ID. Compare arms within a run before
+comparing different models or harnesses.
 
-Each arm gets the same scenarios, runtime, model, and limits. The baseline's skill tree is
-restored from the exact Git commit; the candidate uses `skills/` from this checkout. Manifests
-record content hashes, the model IDs, limits, and Docker image ID. `--no-skill-baseline` measures
-whether the guidance helps at all. Select it instead of `--baseline-ref`.
+Advanced CLI experiments can compare skill revisions with `--baseline-ref <SHA>`, or collect
+one-arm characterization with `--candidate-only`. These are separate experiments, not the
+on-demand workflow. `--shard INDEX/TOTAL` selects a deterministic disjoint partition;
+`--matrix` prints the bounded CI matrix without Docker, model calls, or credentials.
 
-Use `--runtime opencode --kind checkpoint` for a separate runtime experiment. Do not attribute
-a result to skills if the runtime, model, or configuration also changed. The adapter boundary
-can be extended to Codex or Claude Code; those adapters are not implemented in this first
-version. Native saved sessions are not portable between runtimes.
+Use `--runtime pi|opencode|codex|claude` to choose the harness. Sessions are private to the trial
+and are not portable between runtimes. Agent models use OpenRouter through each harness's
+native provider interface. Claude Code accepts only `anthropic/claude-*` models; Codex accepts
+only `openai/gpt-*` models. Pi and OpenCode accept only the three listed open models. Invalid pairs are rejected
+before paid trials start. Provider/protocol failures remain failures, without model substitution.
 
 ## Multi-turn and compaction
 
@@ -57,7 +59,7 @@ code and tool results. They are not a pasted historical transcript.
 ```bash
 uv run --project evals herzo-evals \
   --runtime pi --kind compaction --include-held-out \
-  --model '<provider/agent-model>' --judge-model '<provider/judge-model>' \
+  --model qwen/qwen3.8-27b --judge-model openai/gpt-5-mini \
   --baseline-ref e45aa78eaec30be8c291989a766ba9153f0e7626 \
   --repeat 1 --output evals/results/compaction-pilot
 ```
@@ -67,7 +69,7 @@ observed compaction evidence. The forced case records a 1,024-token recent-histo
 requires that the original instruction is removed from the active context and replaced by a
 summary. This is an accelerated stress case, not the runtime's default retention policy. It does
 not establish reliability across hours of work or natural
-context exhaustion. OpenCode compaction is currently unsupported and rejected explicitly.
+context exhaustion. Forced compaction in the other adapters is unsupported and rejected explicitly.
 See [the audited corpus](CORPUS.md) and [initial case limitations](CASES.md). The held-out flag separates development cases
 from a release check set; once you tune against a case, treat it as development data and add
 new held-out cases. It is a workflow convention, not access control.
@@ -109,26 +111,42 @@ an agent choosing the wrong implementation.
 ## GitHub Actions
 
 `.github/workflows/evals.yml` runs offline checks for relevant PRs and main changes. Use
-**Actions → Skill evals → Run workflow** for paired or characterization trials: choose a runtime, episode
-type, explicit agent/judge model IDs, baseline commit, and repetitions. Select a single case ID for a small pilot. Enable the held-out checkbox for release checks, including
-the compaction suite; ordinary PR runs exclude those cases. Full evidence is kept
-as separate shard artifacts for seven days; the job summary shows per-case results.
+**Actions → Skill evals → Run workflow** and select just:
 
-A full Pi selection uses the `all` suite. OpenCode supports the checkpoint and episode suites;
-manual compaction still requires Pi. Shards account for repetitions and both arms, reserve
-setup/cleanup time, and run at most two jobs concurrently. In characterization mode, each case
-runs once per requested repetition, with no duplicate baseline arm.
+- **harness:** Pi, OpenCode, Codex or Claude Code.
+- **model:** DeepSeek V4.1 Flash (`deepseek/deepseek-v4.1-flash`), GLM 5.3
+  (`z-ai/glm-5.3`), Qwen 3.8 27B (`qwen/qwen3.8-27b`), GPT-6.1 Terra
+  (`openai/gpt-6.1-terra`), or Opus (`anthropic/claude-opus-5.5`).
 
-Recurring paid runs are opt-in after measuring a pilot:
+Choose DeepSeek, GLM or Qwen for Pi/OpenCode, Opus for Claude Code, and GPT-6.1 Terra for Codex.
+The workflow rejects incompatible selections
+before starting the paid matrix. GitHub's dropdowns cannot filter each other dynamically.
 
-- `EVAL_PR_RUNS_ENABLED=true` enables checkpoint comparisons for same-repository skill PRs.
-- `EVAL_SCHEDULE_ENABLED=true` enables the weekly Pi compaction suite.
-- Both require repository variables `EVAL_MODEL`, `EVAL_JUDGE_MODEL`, and optionally
-  `EVAL_BASELINE` (default: the released commit above), plus `OPENROUTER_API_KEY` as a secret.
+Every dispatch compares **with herzo-stack versus without herzo-stack**, using the same model
+and harness. It runs all 50 checkpoint and multi-turn cases, including held-out cases, once
+per arm. The three forced-compaction cases stay in the advanced Pi CLI suite, keeping this
+workflow's corpus identical across harnesses. Repeatedly tuning against held-out results makes
+those cases development data; add new held-out cases before claiming generalization.
+
+The judge is fixed by repository variable `EVAL_JUDGE_MODEL` (default `openai/gpt-5-mini`),
+independent of the agent model. Shards run at most two jobs concurrently. Full evidence is kept
+as separate shard artifacts for seven days; job summaries show results for both arms. One
+trial per arm is an initial comparison, not a statistically reliable ranking; use CLI `--repeat`
+for repeated trials before making performance claims.
+
+Recurring paid runs remain opt-in:
+
+- `EVAL_PR_RUNS_ENABLED=true` enables the same comparison for same-repository skill PRs.
+- `EVAL_SCHEDULE_ENABLED=true` enables the weekly comparison.
+- Both use Pi with DeepSeek V4.1 Flash, the same 50-case corpus, optional
+  `EVAL_JUDGE_MODEL`, and the `OPENROUTER_API_KEY` secret.
 
 Fork PRs get offline checks only. Model-funded runs use trusted refs and a read-only GitHub
 token; the agent container receives no repository write token or production cloud credentials.
 Limits include concurrency, episode timeout, bounded output, and a separate judge deadline.
+Codex exposes no native output-token override; its manifest records the requested cap as
+unenforced and its provider limits apply. Both arms still share the same Codex settings, wall
+deadline and byte budget. Other harnesses enforce the configured token cap.
 Reported usage is the runtime's observed agent usage; it excludes judge calls and may omit
 compaction usage. These bounds do not enforce a precise dollar spend: check OpenRouter billing
 after the pilot and configure a spending limit on the key. Docker cleanup runs on success, failure, and cancellation.

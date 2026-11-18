@@ -1,7 +1,9 @@
 """Keyless native startup/discovery smoke check, run inside the built image."""
 
 import importlib.util
+import json
 import os
+import subprocess
 from pathlib import Path
 
 spec = importlib.util.spec_from_file_location("driver", "/opt/herzo-evals/driver.py")
@@ -47,3 +49,47 @@ skills_root = Path("/skills")
 (skills_root / "smoke").symlink_to(skill, target_is_directory=True)
 driver.opencode(payload)
 print("Native Pi RPC and OpenCode skill discovery passed without model calls")
+
+# Codex's app-server lists the exact same native skills as exec, without inference.
+codex_home = driver.native_home(payload, "Codex")
+codex_env = {**os.environ, "CODEX_HOME": str(codex_home)}
+driver.codex_inventory(payload["skills"], codex_env)
+
+# Claude emits a native init inventory before rejecting missing credentials. This deliberately
+# sends no authenticated request and proves discovery/CLI compatibility, not model execution.
+claude_home = driver.native_home(payload, "Claude Code")
+claude_env = {
+    **os.environ,
+    "CLAUDE_CONFIG_DIR": str(claude_home),
+    "ANTHROPIC_API_KEY": "",
+    "ANTHROPIC_AUTH_TOKEN": "",
+    "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC": "1",
+}
+startup = subprocess.run(
+    [
+        "claude",
+        "--print",
+        "--output-format",
+        "stream-json",
+        "--verbose",
+        "--setting-sources",
+        "user",
+        "--settings",
+        '{"disableBundledSkills":true}',
+        "--strict-mcp-config",
+        "--mcp-config",
+        '{"mcpServers":{}}',
+        "--",
+        "Report startup readiness.",
+    ],
+    env=claude_env,
+    stdout=subprocess.PIPE,
+    text=True,
+    timeout=45,
+)
+records = [json.loads(line) for line in startup.stdout.splitlines()]
+initial = next(r for r in records if r.get("type") == "system" and r.get("subtype") == "init")
+assert "smoke" in initial["skills"], initial
+assert startup.returncode != 0
+assert any(r.get("is_error") for r in records if r.get("type") == "result")
+print("Native Codex and Claude Code skill discovery passed without authenticated model calls")

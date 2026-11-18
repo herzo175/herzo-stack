@@ -383,6 +383,293 @@ def opencode(payload, command=None):
     return result
 
 
+def native_home(payload, runtime):
+    """The runner supplies a fresh tmpfs HOME, never a host agent configuration."""
+    if payload.get("compact_after_turn") is not None:
+        raise ProtocolError(f"{runtime} manual compaction is not supported by this adapter")
+    home = Path.home() / (".codex" if runtime == "Codex" else ".claude")
+    home.mkdir(parents=True, exist_ok=True)
+    skills = (Path.home() / ".agents" if runtime == "Codex" else home) / "skills"
+    skills.mkdir(parents=True, exist_ok=True)
+    for name in payload["skills"]:
+        (skills / name).symlink_to(f"/skills/{name}", target_is_directory=True)
+    return home
+
+
+def native_result():
+    return {
+        "final_response": "",
+        "compactions": 0,
+        "usage": {"input": 0, "output": 0, "cache_read": 0, "cache_write": 0},
+    }
+
+
+def native_records(args, env):
+    process = subprocess.Popen(args, stdout=subprocess.PIPE, text=True, env=env)
+    try:
+        while line := process.stdout.readline():
+            try:
+                event = json.loads(line)
+            except ValueError as exc:
+                raise ProtocolError("Native agent emitted non-JSON protocol output") from exc
+            if not isinstance(event, dict):
+                raise ProtocolError("Native agent protocol record must be an object")
+            yield event
+        if process.wait() != 0:
+            raise ProtocolError(f"Native agent exited with status {process.returncode}")
+    finally:
+        stop(process)
+
+
+def codex_inventory(selected, env, command=None):
+    """Use the same native loader as exec, without sending a model request."""
+    process = subprocess.Popen(
+        command or ["codex", "app-server"],
+        stdin=subprocess.PIPE,
+        stdout=subprocess.PIPE,
+        text=True,
+        env=env,
+    )
+    try:
+
+        def request(request_id, method, params):
+            process.stdin.write(
+                json.dumps({"id": request_id, "method": method, "params": params}) + "\n"
+            )
+            process.stdin.flush()
+            while True:
+                event = read_record(process)
+                if event.get("id") == request_id:
+                    if "error" in event:
+                        raise ProtocolError(f"Codex {method} failed: {event['error']}")
+                    if not isinstance(event.get("result"), dict):
+                        raise ProtocolError(f"Codex {method} returned no result")
+                    return event["result"]
+
+        request(1, "initialize", {"clientInfo": {"name": "herzo-evals", "version": "1"}})
+        process.stdin.write(json.dumps({"method": "initialized", "params": {}}) + "\n")
+        process.stdin.flush()
+        response = request(2, "skills/list", {"cwds": [str(Path.cwd())], "forceReload": True})
+        entries = response.get("data", [])
+        if len(entries) != 1 or entries[0].get("errors"):
+            raise ProtocolError("Codex could not report its loaded skills")
+        inventory = [s for s in entries[0].get("skills", []) if s.get("enabled")]
+        discovered = sorted(s["name"] for s in inventory if s.get("scope") != "system")
+        builtins = sorted(s["name"] for s in inventory if s.get("scope") == "system")
+        if discovered != sorted(selected):
+            raise ProtocolError(f"Codex skill inventory mismatch: {discovered}")
+        emit("event", {"type": "skill_inventory", "names": discovered, "builtins": builtins})
+    finally:
+        stop(process)
+
+
+def codex(payload, command=None):
+    home = native_home(payload, "Codex")
+    # Native Responses API provider; unsupported upstream model routes fail explicitly.
+    (home / "config.toml").write_text(
+        'model_provider = "openrouter"\n'
+        '[model_providers.openrouter]\nname = "OpenRouter"\n'
+        'base_url = "https://openrouter.ai/api/v1"\n'
+        'env_key = "OPENROUTER_API_KEY"\nwire_api = "responses"\n'
+        "request_max_retries = 0\nstream_max_retries = 0\n"
+    )
+    env = {**os.environ, "CODEX_HOME": str(home)}
+    emit(
+        "event",
+        {
+            "type": "output_token_policy",
+            "runtime": "codex",
+            "requested_max_output_tokens": payload["max_output_tokens"],
+            "enforced": False,
+            "source": "native_provider_limits",
+        },
+    )
+    if command is None:
+        codex_inventory(payload["skills"], env)
+    result = native_result()
+    session = None
+    for turn, prompt in enumerate(payload["prompts"], 1):
+        emit("event", {"type": "user_turn", "turn": turn, "text": prompt})
+        args = list(command) if command else ["codex", "exec"]
+        if session:
+            args.extend(["resume", session])
+        args.extend(
+            [
+                "--json",
+                "--dangerously-bypass-approvals-and-sandbox",
+                "--ignore-rules",
+                "--model",
+                payload["model"],
+                "--",
+                prompt,
+            ]
+        )
+        completed = started = False
+        text = []
+        for event in native_records(args, env):
+            kind = event.get("type")
+            # The JSONL CLI emits completed items; omit internal reasoning, keep tools/outcomes.
+            if event.get("item", {}).get("type") != "reasoning":
+                emit("event", event)
+            if kind in {"error", "turn.failed"}:
+                raise ProtocolError(
+                    f"Codex failed: {event.get('error', event.get('message', event))}"
+                )
+            if kind == "thread.started":
+                found = event.get("thread_id")
+                if not found or (session is not None and found != session):
+                    raise ProtocolError("Codex returned a missing or changed session ID")
+                session = found
+                started = True
+            if kind == "turn.started":
+                if completed:
+                    raise ProtocolError("Codex started another turn after completion")
+            if kind == "item.completed":
+                item = event.get("item", {})
+                if item.get("type") == "agent_message":
+                    text.append(item.get("text", ""))
+                if item.get("type") == "context_compaction":
+                    result["compactions"] += 1
+            if kind == "turn.completed":
+                if completed:
+                    raise ProtocolError("Codex returned duplicate turn completion")
+                completed = True
+                usage = event.get("usage", {})
+                result["usage"]["input"] += usage.get("input_tokens", 0)
+                result["usage"]["output"] += usage.get("output_tokens", 0)
+                result["usage"]["cache_read"] += usage.get("cached_input_tokens", 0)
+        if not started or not completed or not any(text):
+            raise ProtocolError("Codex returned no completed response in the expected session")
+        result["final_response"] = "\n".join(text)
+    return result
+
+
+def claude_code(payload, command=None):
+    home = native_home(payload, "Claude Code")
+    env = {
+        **os.environ,
+        "CLAUDE_CONFIG_DIR": str(home),
+        "ANTHROPIC_BASE_URL": "https://openrouter.ai/api",
+        "ANTHROPIC_AUTH_TOKEN": os.environ.get("OPENROUTER_API_KEY", ""),
+        "ANTHROPIC_API_KEY": "",
+        "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC": "1",
+        "ANTHROPIC_DEFAULT_HAIKU_MODEL": payload["model"],
+        "ANTHROPIC_DEFAULT_SONNET_MODEL": payload["model"],
+        "ANTHROPIC_DEFAULT_OPUS_MODEL": payload["model"],
+        "ANTHROPIC_DEFAULT_FABLE_MODEL": payload["model"],
+        "CLAUDE_CODE_SUBAGENT_MODEL": payload["model"],
+        "CLAUDE_CODE_SUBAGENT_MODEL_FORCE": "1",
+        "CLAUDE_CODE_MAX_OUTPUT_TOKENS": str(payload["max_output_tokens"]),
+    }
+    emit(
+        "event",
+        {
+            "type": "output_token_policy",
+            "runtime": "claude-code",
+            "max_output_tokens": payload["max_output_tokens"],
+            "source": "CLAUDE_CODE_MAX_OUTPUT_TOKENS",
+        },
+    )
+    result = native_result()
+    result["usage"]["cost_usd"] = 0.0
+    session = None
+    for turn, prompt in enumerate(payload["prompts"], 1):
+        emit("event", {"type": "user_turn", "turn": turn, "text": prompt})
+        args = (
+            list(command)
+            if command
+            else [
+                "claude",
+                "--print",
+                "--output-format",
+                "stream-json",
+                "--verbose",
+                "--dangerously-skip-permissions",
+                "--setting-sources",
+                "user",
+                "--settings",
+                '{"disableBundledSkills":true}',
+                "--strict-mcp-config",
+                "--mcp-config",
+                '{"mcpServers":{}}',
+                "--model",
+                payload["model"],
+            ]
+        )
+        if session:
+            args.extend(["--resume", session])
+        args.extend(["--", prompt])
+        initialized = completed = False
+        for event in native_records(args, env):
+            kind = event.get("type")
+            trace = event
+            if kind in {"assistant", "user"}:
+                message = event.get("message", {})
+                content = message.get("content", [])
+                if isinstance(content, list):
+                    trace = {
+                        **event,
+                        "message": {
+                            **message,
+                            "content": [
+                                part
+                                for part in content
+                                if part.get("type") not in {"thinking", "redacted_thinking"}
+                            ],
+                        },
+                    }
+            emit("event", trace)
+            found = event.get("session_id")
+            if found:
+                if session is not None and found != session:
+                    raise ProtocolError("Claude Code switched sessions during an episode")
+                session = found
+            if kind == "system" and event.get("subtype") == "init":
+                if not found:
+                    raise ProtocolError("Claude Code init returned no session ID")
+                inventory = event.get("skills")
+                if not isinstance(inventory, list) or not set(payload["skills"]).issubset(
+                    inventory
+                ):
+                    raise ProtocolError("Claude Code skill inventory mismatch")
+                emit(
+                    "event",
+                    {
+                        "type": "skill_inventory",
+                        "names": sorted(payload["skills"]),
+                        "native_extras": sorted(set(inventory) - set(payload["skills"])),
+                    },
+                )
+                initialized = True
+            if kind == "system" and event.get("subtype") == "compact_boundary":
+                result["compactions"] += 1
+            if kind == "error" or event.get("is_api_error_message"):
+                raise ProtocolError(f"Claude Code failed: {event.get('error', event)}")
+            if kind == "result":
+                if completed:
+                    raise ProtocolError("Claude Code returned duplicate completion")
+                if event.get("is_error") or event.get("subtype") != "success":
+                    raise ProtocolError(
+                        f"Claude Code failed: {event.get('errors', event.get('result', event))}"
+                    )
+                result["final_response"] = event.get("result", "")
+                usage = event.get("usage", {})
+                for source, target in [
+                    ("input_tokens", "input"),
+                    ("output_tokens", "output"),
+                    ("cache_read_input_tokens", "cache_read"),
+                    ("cache_creation_input_tokens", "cache_write"),
+                ]:
+                    result["usage"][target] += usage.get(source, 0)
+                result["usage"]["cost_usd"] += event.get("total_cost_usd", 0)
+                completed = True
+        if not initialized or not completed or not result["final_response"]:
+            raise ProtocolError(
+                "Claude Code returned no completed response in the expected session"
+            )
+    return result
+
+
 def main():
     payload = json.loads(sys.stdin.readline())
     os.environ["CI"] = "true"
@@ -393,7 +680,10 @@ def main():
     subprocess.run(
         ["git", "commit", "--quiet", "--allow-empty", "-m", "Fixture starting state"], check=True
     )
-    result = pi(payload) if payload["runtime"] == "pi" else opencode(payload)
+    adapters = {"pi": pi, "opencode": opencode, "codex": codex, "claude": claude_code}
+    if payload["runtime"] not in adapters:
+        raise ProtocolError(f"Unsupported runtime: {payload['runtime']}")
+    result = adapters[payload["runtime"]](payload)
     emit("result", result)
 
 
