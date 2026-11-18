@@ -407,3 +407,56 @@ def test_valid_native_per_text_embedding_calls_are_not_penalized(tmp_path):
         result.returncode == check.expected_exit
         for check, result in zip(scenario.checks, outcomes(scenario, tmp_path), strict=True)
     )
+
+
+def test_valid_cli_readiness_delegation_is_not_penalized(tmp_path):
+    scenario = next(case for case in SCENARIOS if case.id == "claude-existing-cli-over-custom-tool")
+    stage(tmp_path, scenario.files)
+    (tmp_path / "coordinator.py").write_text(
+        "import subprocess\n"
+        "def merge_if_ready(number):\n"
+        "    return subprocess.run(['python3','tools/gh.py','merge',number],"
+        "capture_output=True).returncode == 0\n"
+    )
+    assert all(
+        result.returncode == check.expected_exit
+        for check, result in zip(scenario.checks, outcomes(scenario, tmp_path), strict=True)
+    )
+
+
+def test_valid_heading_line_break_is_not_penalized(tmp_path):
+    scenario = next(
+        case for case in SCENARIOS if case.id == "claude-preserve-intentional-design-during-cleanup"
+    )
+    stage(tmp_path, scenario.files)
+    (tmp_path / "ui.py").write_text(
+        "def render(first_visit):\n"
+        "    welcome='<h1>Explore<br>local risk</h1>"
+        "<p>Compare places before you choose.</p>' if first_visit else ''\n"
+        "    return welcome+'<button>Layers</button><p>Choose a layer.</p>'\n"
+    )
+    assert all(
+        result.returncode == check.expected_exit
+        for check, result in zip(scenario.checks, outcomes(scenario, tmp_path), strict=True)
+    )
+
+
+def test_cutover_function_without_requested_cli_is_incomplete(tmp_path):
+    scenario = next(
+        case
+        for case in SCENARIOS
+        if case.id == "claude-validate-replacement-not-obsolete-architecture"
+    )
+    stage(tmp_path, scenario.files)
+    stage(tmp_path, REFERENCES[scenario.id])
+    (tmp_path / "pipeline.py").write_text(
+        "import json\nfrom pathlib import Path\nfrom engines import execute\n"
+        "def verify():\n"
+        "    result=execute('beta')\n"
+        "    Path('acceptance.json').write_text(json.dumps(result))\n"
+        "    return result\n"
+    )
+    assert any(
+        result.returncode != check.expected_exit
+        for check, result in zip(scenario.checks, outcomes(scenario, tmp_path), strict=True)
+    )
