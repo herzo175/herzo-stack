@@ -174,8 +174,11 @@ def workspace_diff(initial: dict[str, str], workspace: Path, limit: int) -> str:
             except UnicodeDecodeError:
                 binary = True
         if binary:
+            action = (
+                "added" if name not in initial else "removed" if name not in final else "changed"
+            )
             lines.append(
-                f"Binary file {name}: {len(before)} bytes "
+                f"Binary file {name} ({action}): {len(before)} bytes "
                 f"sha256:{hashlib.sha256(before).hexdigest()}"
                 f" -> {len(after)} bytes sha256:{hashlib.sha256(after).hexdigest()}\n"
             )

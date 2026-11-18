@@ -387,4 +387,12 @@ def test_diff_records_new_empty_files_and_non_utf8_outputs(tmp_path):
     (tmp_path / "encoded.bin").write_bytes(b"\xff\xfe")
     diff = runtime.workspace_diff({}, tmp_path, 10000)
     assert "Added empty file: empty.py" in diff
-    assert "Binary file encoded.bin:" in diff
+    assert "Binary file encoded.bin (added):" in diff
+
+
+def test_binary_evidence_distinguishes_removed_file_from_empty_file(tmp_path):
+    initial = {"blob.bin": "abc\0def"}
+    removed = runtime.workspace_diff(initial, tmp_path, 10000)
+    (tmp_path / "blob.bin").write_bytes(b"")
+    emptied = runtime.workspace_diff(initial, tmp_path, 10000)
+    assert removed != emptied
