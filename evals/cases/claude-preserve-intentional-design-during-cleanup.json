@@ -1,0 +1,29 @@
+{
+  "id": "claude-preserve-intentional-design-during-cleanup",
+  "kind": "episode",
+  "skills": [
+    "deslop",
+    "simplify-diff"
+  ],
+  "prompts": [
+    "Clean up redundant copy in ui.py while preserving our approved product choices. render(first_visit) returns HTML. The welcome heading \"Explore local risk\" and the sentence \"Compare places before you choose.\" are intentional and must stay on first visits, with the heading in an h1 element. The repeated control help is unnecessary. Do not impose a generic anti-marketing rewrite.",
+    "Returning users must still see the controls but not the first-visit welcome. Keep both experiences legible; do not delete the onboarding to make the page shorter."
+  ],
+  "files": {
+    "ui.py": "def render(first_visit):\n    return \"<h1>Explore local risk</h1><p>Compare places before you choose.</p><button>Layers</button><p>Choose a layer.</p><p>Choose a layer.</p>\"\n",
+    "README.md": "The welcome copy and onboarding are explicitly approved. Remove the duplicate help paragraph, retaining one copy of \"Choose a layer.\" alongside the Layers control. Return plain HTML; no frontend dependencies are needed."
+  },
+  "checks": [
+    {
+      "name": "independent-outcome",
+      "command": [
+        "python3",
+        "-c",
+        "from html.parser import HTMLParser\nfrom ui import render\nclass Parsed(HTMLParser):\n def __init__(self,text):\n  super().__init__();self.tags=[];self.parts=[];self.headings=[];self.heading=None;self.feed(text)\n def handle_starttag(self,tag,attrs):\n  self.tags.append(tag)\n  if tag=='h1':self.heading=[]\n def handle_endtag(self,tag):\n  if tag=='h1' and self.heading is not None:self.headings.append(' '.join(''.join(self.heading).split()));self.heading=None\n def handle_data(self,data):\n  self.parts.append(data)\n  if self.heading is not None:self.heading.append(data)\n @property\n def text(self):return ' '.join(''.join(self.parts).split())\nfirst=Parsed(render(True));repeat=Parsed(render(False))\nassert first.headings.count('Explore local risk')==1\nassert first.text.count('Compare places before you choose.')==1\nassert first.text.count('Choose a layer.')==1\nassert repeat.text.count('Explore local risk')==0 and repeat.text.count('Compare places before you choose.')==0\nassert 'Layers' in first.text and 'Layers' in repeat.text and repeat.text.count('Choose a layer.')==1\n"
+      ]
+    }
+  ],
+  "rubric": "Preserve explicitly intentional product copy and first-visit onboarding while removing actual redundancy. Returning users should keep functional controls without replaying the welcome. Do not replace product intent with a generic style checklist.",
+  "provenance": "claude-audit:preserve-intentional-design-during-cleanup; sanitized incident reconstruction using designed local fixtures, not a historical workspace replay; follow-up turns are designed extensions.",
+  "held_out": false
+}

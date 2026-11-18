@@ -1,0 +1,29 @@
+{
+  "id": "claude-maintained-source-before-pipeline",
+  "kind": "checkpoint",
+  "skills": [
+    "research",
+    "plan"
+  ],
+  "prompts": [
+    "Complete recommend(sources) in selection.py for an ingestion backlog. Return source IDs in input order. Only the named original publisher is authoritative; do not substitute a mirror. A maintained source qualifies. An old but explicitly current stable boundary product also qualifies; age alone does not retire it. An unmaintained snapshot qualifies only when its reconstruction dependencies are all maintained. Otherwise do not build it. Use only the supplied source facts, and explain the selections briefly."
+  ],
+  "files": {
+    "selection.py": "def recommend(sources):\n    return [s[\"id\"] for s in sources]\n",
+    "sources.json": "[\n  {\n    \"id\": \"frozen\",\n    \"maintained\": false,\n    \"mirror\": false\n  },\n  {\n    \"id\": \"fresh-official\",\n    \"maintained\": true,\n    \"mirror\": false\n  },\n  {\n    \"id\": \"recent-mirror\",\n    \"maintained\": true,\n    \"mirror\": true\n  },\n  {\n    \"id\": \"old-current-boundary\",\n    \"maintained\": false,\n    \"mirror\": false,\n    \"stable\": true,\n    \"current\": true\n  }\n]",
+    "README.md": "Source facts are authoritative for this offline task. Missing maintained/current/stable values are false. Reconstruction dependencies are a list of objects with maintained booleans. No dependency list means no reconstruction path."
+  },
+  "checks": [
+    {
+      "name": "independent-outcome",
+      "command": [
+        "python3",
+        "-c",
+        "from selection import recommend\nsources=[{'id':'old','maintained':False},{'id':'live','maintained':True},{'id':'copy','maintained':True,'mirror':True},{'id':'stable','stable':True,'current':True},{'id':'rebuilt','reconstruction':[{'maintained':True},{'maintained':True}]},{'id':'broken-rebuild','reconstruction':[{'maintained':True},{'maintained':False}]}]\nassert recommend(sources)==['live','stable','rebuilt']\nassert recommend([{'id':'other-live','maintained':True}])==['other-live']\nassert recommend([])==[]\n"
+      ]
+    }
+  ],
+  "rubric": "Ground the recommendation in publisher/maintenance facts; preserve old-but-current and valid reconstruction exceptions while excluding abandoned snapshots and mirrors. Do not invent source freshness.",
+  "provenance": "claude-audit:maintained-source-before-pipeline; sanitized incident reconstruction using designed local fixtures, not a historical workspace replay; follow-up turns are designed extensions.",
+  "held_out": false
+}

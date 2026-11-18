@@ -1,0 +1,30 @@
+{
+  "id": "claude-guidance-owner-and-no-duplication",
+  "kind": "episode",
+  "skills": [
+    "correct",
+    "simplify-diff"
+  ],
+  "prompts": [
+    "Worker and reviewer both need the shared delivery rule in guidance.json. Make rules.delivery the single owner and let role_rules(role) resolve references from it. Remove copied role-local text rather than keeping two active copies. Preserve the distinct project-only source-license exception for the worker.",
+    "Now update the shared delivery rule to require the relevant consumer checks as well. Both roles should see the update automatically; the worker-only license exception must remain worker-only."
+  ],
+  "files": {
+    "guidance.json": "{\"rules\": {\"delivery\": \"Run affected tests.\"}, \"roles\": {\"worker\": {\"refs\": [\"delivery\"], \"inline\": [\"Run affected tests.\", \"Confirm the project source license.\"]}, \"reviewer\": {\"refs\": [\"delivery\"], \"inline\": [\"Run affected tests.\"]}}}",
+    "guidance.py": "import json\nfrom pathlib import Path\n\n\ndef role_rules(role):\n    data = json.loads(Path(\"guidance.json\").read_text())\n    r = data[\"roles\"][role]\n    return [data[\"rules\"][name] for name in r[\"refs\"]] + r[\"inline\"]\n",
+    "README.md": "guidance.json has canonical rules and per-role refs/inline entries. The worker source-license exception belongs only to that role. Preserve role_rules(role)->list[str]."
+  },
+  "checks": [
+    {
+      "name": "independent-outcome",
+      "command": [
+        "python3",
+        "-c",
+        "import json\nfrom pathlib import Path\nfrom guidance import role_rules\npath=Path('guidance.json');data=json.loads(path.read_text());data['rules']['delivery']='Canonical delivery marker: changed consumer contract.';path.write_text(json.dumps(data))\nfor role in ['worker','reviewer']:\n rules=role_rules(role);assert rules.count(data['rules']['delivery'])==1;assert 'Run affected tests.' not in rules\nassert len(role_rules('worker'))==2 and len(role_rules('reviewer'))==1\nassert all(isinstance(rule,str) and rule.strip() for rule in role_rules('worker'))\n"
+      ]
+    }
+  ],
+  "rubric": "Resolve shared guidance from one owner and keep the real project exception local. Updating canonical delivery text must propagate to both roles without stale duplicate instructions.",
+  "provenance": "claude-audit:guidance-owner-and-no-duplication; sanitized incident reconstruction using designed local fixtures, not a historical workspace replay; follow-up turns are designed extensions.",
+  "held_out": false
+}
