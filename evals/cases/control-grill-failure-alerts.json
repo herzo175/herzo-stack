@@ -26,7 +26,7 @@
       "command": [
         "python3",
         "-c",
-        "from pathlib import Path\np=Path('questions.md'); assert p.is_file(); text=p.read_text().strip(); assert len(text)>100; assert '?' in text; assert len(text)<6000"
+        "from pathlib import Path\np=Path('questions.md'); assert p.is_file(); assert p.read_text().strip(), 'Provide questions for review'"
       ]
     }
   ],

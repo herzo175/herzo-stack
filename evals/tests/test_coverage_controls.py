@@ -107,7 +107,8 @@ def test_prototype_controls_and_unchanged_backend(tmp_path):
     stage(tmp_path, {target: PROTOTYPE})
     assert_passes(scenario, tmp_path)
     stage(
-        tmp_path, {target: "<html><button disabled>Retry</button><p>Modal coming soon</p></html>"}
+        tmp_path,
+        {target: '<html><script src="https://assets.invalid/prototype.js"></script></html>'},
     )
     assert any(r.returncode != 0 for r in checks(scenario, tmp_path))
 
@@ -194,3 +195,97 @@ def test_native_ticket_grader_rejects_bad_outcomes(tmp_path, bad_mutation):
     else:
         (tmp_path / "tracker.py").write_text("# modified tool\n")
     assert any(result.returncode != 0 for result in checks(scenario, tmp_path))
+
+
+NATIVE_PROTOTYPE = """<!doctype html><html><head><title>Throwaway retry choice</title>
+<style>
+#inline-mode:checked ~ #modal-flow, #modal-mode:checked ~ #inline-flow {display:none}
+</style></head><body><h1>Inline or modal confirmation?</h1>
+<input type="radio" name="variant" id="inline-mode" checked>
+<label for="inline-mode">Inline</label>
+<input type="radio" name="variant" id="modal-mode"><label for="modal-mode">Modal</label>
+<section id="inline-flow"><p>Failed import</p>
+<details id="inline-confirm"><summary>Retry</summary><p>Retry this import?</p>
+<button onclick="finish('Queued')">Confirm retry</button>
+<button onclick="finish('Cancelled')">Cancel</button></details></section>
+<section id="modal-flow"><p>Failed import</p>
+<button onclick="document.getElementById('modal-confirm').showModal()">Retry</button></section>
+<dialog id="modal-confirm"><p>Retry this import?</p>
+<button onclick="finish('Queued')">Confirm retry</button>
+<button onclick="finish('Cancelled')">Cancel</button></dialog>
+<p>Result: <output id="status">Failed</output></p>
+<script>
+function finish(state) {
+ document.getElementById('status').value = state;
+ document.getElementById('inline-confirm').open = false;
+ document.getElementById('modal-confirm').close();
+}
+</script></body></html>
+"""
+
+
+def test_native_html_css_and_output_value_prototype_passes(tmp_path):
+    scenario = SCENARIOS["control-prototype-retry-confirmation"]
+    stage(tmp_path, scenario.files)
+    stage(tmp_path, {"prototypes/throwaway-retry.html": NATIVE_PROTOTYPE})
+    assert_passes(scenario, tmp_path)
+
+
+@pytest.mark.parametrize("concise", [False, True], ids=["equivalent-heading", "concise-criteria"])
+def test_native_ticket_acceptance_is_not_a_prose_token_check(tmp_path, concise):
+    original = tmp_path / "original"
+    scenario = prepare_tracker(original)
+    state = json.loads((original / ".tracker/issues.json").read_text())
+    target = tmp_path / "alternative"
+    stage(target, scenario.files)
+    short_bodies = [
+        "Register a source through the CLI. "
+        "Done when storage, URL/id validation and CLI tests pass.",
+        "Start imports and inspect status/errors. Done when storage, execution and CLI tests pass.",
+        "Retry failed runs. Done when CLI tests pass and source records aren't duplicated.",
+    ]
+    blockers = []
+    for index, issue in enumerate(state["issues"][1:]):
+        body = (
+            short_bodies[index] if concise else issue["body"].replace("Acceptance:", "Done when:")
+        )
+        blockers = [publish(target, issue["title"], body, blockers)]
+    assert_passes(scenario, target)
+
+
+def test_artifact_check_does_not_require_javascript_or_button_count(tmp_path):
+    # Native controls can express states. The semantic judge still has to assess
+    # the actual alternatives; this check only establishes a self-contained file.
+    scenario = SCENARIOS["control-prototype-retry-confirmation"]
+    stage(tmp_path, scenario.files)
+    artifact = """<!doctype html><html><head><title>Throwaway confirmation choices</title>
+<style>
+#inline:checked ~ .modal-flow, #modal:checked ~ .inline-flow { display:none }
+.modal-panel { position:fixed; inset:20%; background:white; padding:2rem }
+</style></head><body>
+<input type="radio" name="variant" id="inline" checked><label for="inline">Inline</label>
+<input type="radio" name="variant" id="modal"><label for="modal">Modal</label>
+<section class="inline-flow"><details><summary>Retry import</summary>
+<p>Confirm inline</p><select><option>Choose</option><option>Queued</option>
+<option>Cancelled</option></select></details></section>
+<section class="modal-flow"><details><summary>Retry import</summary>
+<div class="modal-panel"><p>Confirm in overlay</p><select><option>Choose</option>
+<option>Queued</option><option>Cancelled</option></select></div></details></section>
+</body></html>"""
+    stage(tmp_path, {"prototypes/throwaway-retry.html": artifact})
+    assert_passes(scenario, tmp_path)
+
+
+def test_concise_grill_round_has_no_hidden_length_minimum(tmp_path):
+    scenario = SCENARIOS["control-grill-failure-alerts"]
+    stage(tmp_path, scenario.files)
+    stage(
+        tmp_path,
+        {
+            "questions.md": (
+                "Channel? Recommend chat for visibility. "
+                "Failures? Recommend after retries to cut noise."
+            )
+        },
+    )
+    assert_passes(scenario, tmp_path)
