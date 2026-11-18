@@ -1,0 +1,29 @@
+{
+  "id": "preserve-deployed-contract",
+  "kind": "checkpoint",
+  "skills": [
+    "simplify-diff"
+  ],
+  "held_out": true,
+  "prompts": [
+    "Clean up this PR for review without changing supported behavior. The deployed client shown in clients/mobile.py still sends the v1 envelope; the web client uses v2. Both interfaces remain supported for this release."
+  ],
+  "files": {
+    "pipeline.py": "def _sort(rows):\n    return sorted(rows, key=lambda row: row[\"id\"])\n\n\ndef _forward_sort(rows):\n    return _sort(rows)\n\n\ndef load_records(payload):\n    if \"rows\" in payload:\n        return _forward_sort(payload[\"rows\"])\n    return _forward_sort(payload[\"records\"])\n",
+    "clients/mobile.py": "from pipeline import load_records\n\n\ndef preview():\n    return load_records({\"rows\": [{\"id\": 2}, {\"id\": 1}]})\n",
+    "clients/web.py": "from pipeline import load_records\n\n\ndef preview():\n    return load_records({\"records\": [{\"id\": 2}, {\"id\": 1}]})\n",
+    "README.md": "# Record importer\n\nThe deployed mobile client uses `rows`; the web client uses `records`. Both are supported.\n"
+  },
+  "checks": [
+    {
+      "name": "both-client-contracts",
+      "command": [
+        "python3",
+        "-c",
+        "from pipeline import load_records; expected=[{'id':1},{'id':2}]; assert load_records({'rows':[{'id':2},{'id':1}]})==expected; assert load_records({'records':[{'id':2},{'id':1}]})==expected; assert load_records({'rows':[]})==[]; assert load_records({'records':[]})==[]"
+      ]
+    }
+  ],
+  "rubric": "Keep compatibility required by the actual deployed mobile and web clients. Simplify the forwarding wrapper or other genuinely redundant code without deleting either supported envelope, changing their semantics, or adding unrelated compatibility mechanisms. This is a counterexample to blindly deleting every fallback.",
+  "provenance": "designed-negative-control:compatibility-20261117; paired with the conversation-derived prelaunch case, not a separate historical incident."
+}

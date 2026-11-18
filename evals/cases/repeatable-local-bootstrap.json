@@ -1,0 +1,38 @@
+{
+  "id": "repeatable-local-bootstrap",
+  "kind": "episode",
+  "skills": [
+    "plan",
+    "execute-plan",
+    "simplify-diff"
+  ],
+  "prompts": [
+    "We have a small agent service whose settings were previously edited by hand on a VM. Make standing it up repeatable from this checkout: add setup.py using only the Python standard library. `python3 setup.py --root DIR --port N` should create DIR and write agent.json containing the selected integer port. It must work on a completely empty target directory. Keep all setup logic here in source control.",
+    "Add a required --label option and record it as label in agent.json. Keep the port option working, and make rerunning setup with new settings update the config without depending on any files from your development environment.",
+    "Document the command in README.md, then check a fresh setup and a rerun. We only need this local bootstrap; don't provision a real machine or invent a deployment platform."
+  ],
+  "files": {
+    "README.md": "# Agent bootstrap\n\nSettings were edited by hand. This checkout needs a repeatable local setup command.\n"
+  },
+  "checks": [
+    {
+      "name": "fresh-setup-and-rerun",
+      "command": [
+        "python3",
+        "-c",
+        "from pathlib import Path; import json,subprocess,tempfile\nwith tempfile.TemporaryDirectory() as d:\n root=Path(d)/'fresh'\n for port,label in [(8123,'first'),(9234,'second')]:\n  p=subprocess.run(['python3','setup.py','--root',str(root),'--port',str(port),'--label',label],text=True,capture_output=True)\n  assert p.returncode==0,p.stdout+p.stderr\n  config=json.loads((root/'agent.json').read_text())\n  assert config['port']==port and config['label']==label,config"
+      ]
+    },
+    {
+      "name": "docs-command",
+      "command": [
+        "python3",
+        "-c",
+        "from pathlib import Path; t=Path('README.md').read_text(); assert all(s in t for s in ['setup.py','--root','--port','--label'])"
+      ]
+    }
+  ],
+  "rubric": "The checkout contains a complete repeatable standard-library setup, including all final command options and documentation. It works from an empty target and when rerun, does not depend on machine-local files or one-off remote mutations, and does not claim to have provisioned an actual service. Later turns must not erase the earlier port requirement. Judge task completion, not whether the agent chose a particular internal implementation.",
+  "provenance": "conversation-correction:repeatable-code-20261112; sanitized local reconstruction; additional turns are designed extensions.",
+  "held_out": false
+}
