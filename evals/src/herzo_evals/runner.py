@@ -14,7 +14,7 @@ from pydantic_evals import Case, Dataset
 from pydantic_evals.lifecycle import CaseLifecycle
 from pydantic_evals.reporting import ReportCase
 
-from herzo_evals.grading import BehaviorJudge, OutcomeChecks
+from herzo_evals.grading import JUDGE_INPUT_LIMIT_CHARS, BehaviorJudge, OutcomeChecks
 from herzo_evals.models import Scenario, Settings, TrialResult
 
 
@@ -114,6 +114,7 @@ async def run_experiment(
             json.dumps([case.model_dump() for case in scenarios], sort_keys=True).encode()
         ).hexdigest(),
         "usage_scope": "agent-reported; excludes judge and may omit compaction",
+        "judge_input_limit_chars": JUDGE_INPUT_LIMIT_CHARS,
         "repeat": repeat,
         "concurrency": concurrency,
     }

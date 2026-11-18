@@ -89,7 +89,9 @@ or files and cannot infer success from a claimed completion. Pi's cumulative UI 
 retain linear streaming deltas, finalized visible messages, ordered tool arguments/results and
 compaction summaries/validation, without repeated aggregate copies. The judge omits streaming
 deltas and internal reasoning text. Full native context is used internally to validate compaction;
-its duplicate snapshots are not persisted. Oversized evidence, judge errors and execution
+its duplicate snapshots are not persisted. The judge input is capped at 200,000 characters, calibrated against a completed six-turn
+compaction episode (137,020 characters after removing repeated snapshots). The manifest records
+this cap. Oversized evidence, judge errors and execution
 failures are reported explicitly rather than treated as favorable truncation or behavior scores.
 
 The CLI exits unsuccessfully for execution/judge failures. A completed trial with failing

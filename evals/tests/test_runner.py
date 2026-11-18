@@ -70,6 +70,8 @@ async def test_repetitions_persist_evidence_and_remove_secret(scenario, tmp_path
     rows = await run_experiment(
         [scenario], settings, tmp_path / "arm", 2, 1, "baseline", judge=False
     )
+    manifest = json.loads((tmp_path / "arm/manifest.json").read_text())
+    assert manifest["judge_input_limit_chars"] == 200_000
     assert len(rows) == 2
     assert len(set(calls)) == 2
     for row in rows:

@@ -10,6 +10,8 @@ from pydantic_evals.evaluators import EvaluationReason, Evaluator, EvaluatorCont
 
 from herzo_evals.models import Scenario, TrialResult
 
+JUDGE_INPUT_LIMIT_CHARS = 200_000
+
 
 @dataclass
 class OutcomeChecks(Evaluator[Scenario, TrialResult, dict[str, Any]]):
@@ -31,7 +33,11 @@ class OutcomeChecks(Evaluator[Scenario, TrialResult, dict[str, Any]]):
         return verdicts
 
 
-def judge_evidence(scenario: Scenario, result: TrialResult, limit: int = 100_000) -> str | None:
+def judge_evidence(
+    scenario: Scenario,
+    result: TrialResult,
+    limit: int = JUDGE_INPUT_LIMIT_CHARS,
+) -> str | None:
     # Streaming deltas duplicate the finalized messages; don't pay to grade both.
     events = [
         event
