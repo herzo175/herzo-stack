@@ -66,6 +66,11 @@ for line in sys.stdin:
  if r['type']=='get_commands':
   print(json.dumps({'type':'response','id':r['id'],'success':True,'data':{'commands':[]}}),flush=True)
   continue
+ if r['type']=='get_messages':
+  messages=([{'role':'user','content':'one'}] if r['id'].startswith('before') else
+            [{'role':'compactionSummary','summary':'Summary'}])
+  print(json.dumps({'type':'response','id':r['id'],'success':True,'data':{'messages':messages}}),flush=True)
+  continue
  if r['type']=='prompt':
   print(json.dumps({'type':'response','id':r['id'],'success':True}),flush=True)
   print(json.dumps({'type':'message_end','message':{'role':'assistant',
@@ -79,8 +84,12 @@ for line in sys.stdin:
     result = driver.pi(payload(compact_after_turn=1), command)
     assert result["final_response"] == "two"
     assert result["compactions"] == 1 and result["usage"]["input"] == 10
+    configured = json.loads((tmp_path / ".pi/agent/settings.json").read_text())
+    assert configured["compaction"] == {"enabled": False, "keepRecentTokens": 1024}
     events = [json.loads(x)["data"] for x in capsys.readouterr().out.splitlines()]
     assert [x["text"] for x in events if x["type"] == "user_turn"] == ["one", "two"]
+    assert any(x["type"] == "compaction_validated" and x["initial_message_removed"] for x in events)
+    assert any(x["type"] == "compaction_policy" and x["keepRecentTokens"] == 1024 for x in events)
     assert next(i for i, x in enumerate(events) if x["type"] == "compaction_end") < next(
         i for i, x in enumerate(events) if x.get("text") == "two"
     )
@@ -95,6 +104,10 @@ for line in sys.stdin:
  r=json.loads(line)
  if r['type']=='get_commands':
   print(json.dumps({'type':'response','id':r['id'],'success':True,'data':{'commands':[]}}),flush=True)
+  continue
+ if r['type']=='get_messages':
+  print(json.dumps({'type':'response','id':r['id'],'success':True,
+   'data':{'messages':[{'role':'user','content':'one'}]}}),flush=True)
   continue
  print(json.dumps({'type':'response','id':r['id'],'success':True,'data':{'summary':'fake'}}),flush=True)
  if r['type']=='prompt': print(json.dumps({'type':'agent_end','messages':[]}),flush=True)
@@ -293,3 +306,34 @@ def test_driver_seeds_git_before_agent_runs(tmp_path, monkeypatch, capsys):
     monkeypatch.setattr(driver, "pi", fake_pi)
     driver.main()
     assert "started after seed" in capsys.readouterr().out
+
+
+@pytest.mark.parametrize("invalid_context", ["retained", "no-summary"])
+def test_compaction_rejects_success_without_discarding_original_context(
+    tmp_path, monkeypatch, invalid_context
+):
+    monkeypatch.setenv("HOME", str(tmp_path))
+    command = script(
+        tmp_path,
+        """import json,sys
+compacted=False
+for line in sys.stdin:
+ r=json.loads(line)
+ data={}
+ if r['type']=='get_commands': data={'commands':[]}
+ elif r['type']=='get_messages':
+  messages=[{'role':'user','content':'one'}]
+  if compacted and INVALID=='retained':
+   messages.insert(0,{'role':'compactionSummary','summary':'Summary'})
+  elif compacted: messages=[]
+  data={'messages':messages}
+ elif r['type']=='compact':
+  compacted=True
+  data={'summary':'Summary'}
+  print(json.dumps({'type':'compaction_end','result':data,'aborted':False}),flush=True)
+ print(json.dumps({'type':'response','id':r['id'],'success':True,'data':data}),flush=True)
+ if r['type']=='prompt': print(json.dumps({'type':'agent_end','messages':[]}),flush=True)
+""".replace("INVALID", repr(invalid_context)),
+    )
+    with pytest.raises(driver.ProtocolError, match="Compaction did not replace"):
+        driver.pi(payload(compact_after_turn=1), command)

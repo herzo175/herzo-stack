@@ -69,7 +69,12 @@ def pi(payload, command=None):
         )
     )
     # Disable retries so a failed attempt isn't silently replaced by a successful one.
-    (home / "settings.json").write_text(json.dumps({"retry": {"enabled": False}}))
+    settings = {"retry": {"enabled": False}}
+    if payload.get("compact_after_turn") is not None:
+        # Force a measured retention boundary, without waiting for a context overflow.
+        settings["compaction"] = {"enabled": False, "keepRecentTokens": 1024}
+        emit("event", {"type": "compaction_policy", "auto": False, "keepRecentTokens": 1024})
+    (home / "settings.json").write_text(json.dumps(settings))
     args = command or [
         "pi",
         "--mode",
@@ -93,9 +98,11 @@ def pi(payload, command=None):
         "compactions": 0,
         "usage": {"input": 0, "output": 0, "cache_read": 0, "cache_write": 0, "cost_usd": 0.0},
     }
+    observed_compactions = 0
     try:
 
         def receive():
+            nonlocal observed_compactions
             event = read_record(process)
             emit("event", event)
             if event.get("type") == "message_end":
@@ -117,7 +124,9 @@ def pi(payload, command=None):
                     result["usage"]["cost_usd"] += usage.get("cost", {}).get("total", 0)
             if event.get("type") == "compaction_end":
                 if event.get("result") and not event.get("aborted"):
-                    result["compactions"] += 1
+                    observed_compactions += 1
+                    if payload.get("compact_after_turn") is None:
+                        result["compactions"] += 1
                 elif event.get("errorMessage"):
                     raise ProtocolError(event["errorMessage"])
             return event
@@ -125,6 +134,16 @@ def pi(payload, command=None):
         def send(kind, request_id, **fields):
             process.stdin.write(json.dumps({"type": kind, "id": request_id, **fields}) + "\n")
             process.stdin.flush()
+
+        def active_messages(request_id):
+            send("get_messages", request_id)
+            while True:
+                event = receive()
+                if event.get("type") == "response" and event.get("id") == request_id:
+                    messages = event.get("data", {}).get("messages")
+                    if not event.get("success") or not isinstance(messages, list):
+                        raise ProtocolError("Pi could not report its active model context")
+                    return messages
 
         send("get_commands", "skill-inventory")
         while True:
@@ -152,7 +171,16 @@ def pi(payload, command=None):
                 if event.get("type") == "agent_end":
                     ended = True
             if payload.get("compact_after_turn") == turn:
-                before = result["compactions"]
+                original = payload["prompts"][0]
+                messages_before = active_messages(f"before-compact-{turn}")
+                if not any(
+                    message.get("role") == "user" and response_text(message) == original
+                    for message in messages_before
+                ):
+                    raise ProtocolError(
+                        "Compaction could not locate the original initial user message"
+                    )
+                before = observed_compactions
                 compact_id = f"compact-{turn}"
                 send("compact", compact_id)
                 while True:
@@ -163,10 +191,35 @@ def pi(payload, command=None):
                                 event.get("error", "Pi returned no compaction result")
                             )
                         break
-                if result["compactions"] <= before:
+                if observed_compactions <= before:
                     raise ProtocolError(
                         "Pi returned a compaction response without a completion event"
                     )
+                messages_after = active_messages(f"after-compact-{turn}")
+                summary_first = bool(messages_after) and (
+                    messages_after[0].get("role") == "compactionSummary"
+                )
+                retained_original = any(
+                    message.get("role") != "compactionSummary"
+                    and original in response_text(message)
+                    for message in messages_after
+                )
+                if not summary_first or retained_original:
+                    raise ProtocolError(
+                        "Compaction did not replace the original initial message in active context"
+                    )
+                result["compactions"] += 1
+                emit(
+                    "event",
+                    {
+                        "type": "compaction_validated",
+                        "initial_message_removed": True,
+                        "summary_present": True,
+                        "messages_before": len(messages_before),
+                        "messages_after": len(messages_after),
+                        "keepRecentTokens": 1024,
+                    },
+                )
         return result
     finally:
         stop(process)
