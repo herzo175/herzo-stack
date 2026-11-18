@@ -80,6 +80,7 @@ class CheckResult(StrictModel):
 
 
 class TrialResult(StrictModel):
+    trial_id: str = ""
     status: Literal["completed", "timeout", "infrastructure_error", "output_limit"]
     events: list[dict[str, Any]] = Field(default_factory=list)
     diff: str = ""

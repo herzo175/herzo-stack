@@ -153,3 +153,15 @@ def test_public_cases_exclude_private_identifiers():
     for path in CASES.glob("*.json"):
         raw = path.read_text()
         assert not any(s in raw for s in ["/Users/", "@gmail.com", "sk-or-", "rollout-2026"])
+
+
+def test_semantically_equivalent_json_caller_output_passes(tmp_path):
+    scenario = next(s for s in SCENARIOS if s.id == "remove-prelaunch-compatibility")
+    stage(tmp_path, scenario.files)
+    stage(tmp_path, REFERENCES[scenario.id])
+    (tmp_path / "example.py").write_text(
+        "import json\nfrom pipeline import load_records\n"
+        'print(json.dumps(load_records({"records":[{"id":2},{"id":1}]})))\n'
+    )
+    for check, outcome in zip(scenario.checks, results(scenario, tmp_path), strict=True):
+        assert outcome.returncode == check.expected_exit, (check.name, outcome.stderr)

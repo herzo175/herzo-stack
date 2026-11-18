@@ -93,7 +93,8 @@ an agent choosing the wrong implementation.
 
 `.github/workflows/evals.yml` runs offline checks for relevant PRs and main changes. Use
 **Actions → Skill evals → Run workflow** for a bounded paired trial: choose a runtime, episode
-type, explicit agent/judge model IDs, baseline commit, and repetitions. Full evidence is kept
+type, explicit agent/judge model IDs, baseline commit, and repetitions. Enable the held-out checkbox for release checks, including
+the compaction suite; ordinary PR runs exclude those cases. Full evidence is kept
 as an artifact for seven days; the job summary shows per-case results.
 
 Recurring paid runs are opt-in after measuring a pilot:
@@ -106,8 +107,9 @@ Recurring paid runs are opt-in after measuring a pilot:
 Fork PRs get offline checks only. Model-funded runs use trusted refs and a read-only GitHub
 token; the agent container receives no repository write token or production cloud credentials.
 Limits include concurrency, episode timeout, bounded output, and a separate judge deadline.
-These bound execution, not a precise dollar spend: measure usage first and configure a spending
-limit on the OpenRouter key. Docker cleanup runs on success, failure, and cancellation.
+Reported usage is the runtime's observed agent usage; it excludes judge calls and may omit
+compaction usage. These bounds do not enforce a precise dollar spend: check OpenRouter billing
+after the pilot and configure a spending limit on the key. Docker cleanup runs on success, failure, and cancellation.
 
 ## Develop
 

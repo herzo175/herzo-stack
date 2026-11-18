@@ -1,3 +1,4 @@
+import json
 import subprocess
 import sys
 from pathlib import Path
@@ -71,6 +72,10 @@ async def test_repetitions_persist_evidence_and_remove_secret(scenario, tmp_path
     )
     assert len(rows) == 2
     assert len(set(calls)) == 2
+    for row in rows:
+        evidence = tmp_path / "arm" / row["trial_id"] / "result.json"
+        assert evidence.is_file()
+        assert json.loads(evidence.read_text())["trial_id"] == row["trial_id"]
     for path in (tmp_path / "arm").rglob("*.json"):
         assert key not in path.read_text()
     assert all(row["assertions"]["check_meaning"]["passed"] for row in rows)

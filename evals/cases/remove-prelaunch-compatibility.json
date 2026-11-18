@@ -34,7 +34,7 @@
       "command": [
         "python3",
         "-c",
-        "import subprocess; p=subprocess.run(['python3','example.py'],text=True,capture_output=True); assert p.returncode==0,p.stderr; assert p.stdout.strip()==\"[{'id': 1}, {'id': 2}]\""
+        "import ast,subprocess; p=subprocess.run(['python3','example.py'],text=True,capture_output=True); assert p.returncode==0,p.stderr; assert ast.literal_eval(p.stdout.strip())==[{'id':1},{'id':2}]"
       ]
     }
   ],

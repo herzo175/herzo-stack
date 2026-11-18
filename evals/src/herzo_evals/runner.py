@@ -95,6 +95,7 @@ async def run_experiment(
         "cases_sha256": hashlib.sha256(
             json.dumps([case.model_dump() for case in scenarios], sort_keys=True).encode()
         ).hexdigest(),
+        "usage_scope": "agent-reported; excludes judge and may omit compaction",
         "repeat": repeat,
         "concurrency": concurrency,
     }
@@ -116,6 +117,7 @@ async def run_experiment(
         # Native adapter owns process/container cancellation, including checks and extraction.
         result = await execute(scenario, settings, trial_dir)
         result = TrialResult.model_validate(redact(result.model_dump(), key))
+        result.trial_id = trial_id
         (trial_dir / "result.json").write_text(result.model_dump_json(indent=2) + "\n")
         return result
 
@@ -132,6 +134,7 @@ async def run_experiment(
         rows.append(
             {
                 "case": case.name,
+                "trial_id": case.output.trial_id,
                 "status": case.output.status,
                 "duration_seconds": case.output.duration,
                 "compactions": case.output.compactions,

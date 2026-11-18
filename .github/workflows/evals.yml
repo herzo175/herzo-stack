@@ -31,6 +31,10 @@ on:
         required: true
         default: e45aa78eaec30be8c291989a766ba9153f0e7626
         type: string
+      include_held_out:
+        description: Include release-check cases (required for compaction suite)
+        type: boolean
+        default: false
       repeat:
         description: Trials per arm
         type: choice
@@ -62,6 +66,15 @@ jobs:
       - run: uv run --project evals --frozen ruff format --check evals
       - run: uv run --project evals --frozen pytest evals/tests -q
       - run: uv run --project evals --frozen herzo-evals --list --include-held-out
+      - name: Build pinned coding runtimes
+        run: docker build --tag herzo-evals:local evals/container
+      - name: Verify native skill discovery without model calls
+        run: >-
+          docker run --rm --read-only
+          --tmpfs /tmp:mode=1777
+          --tmpfs /home/node:uid=1000,gid=1000
+          --tmpfs /skills:mode=1777
+          --entrypoint python3 herzo-evals:local /opt/herzo-evals/smoke.py
 
   behavioral:
     needs: offline
@@ -91,13 +104,16 @@ jobs:
           EVAL_JUDGE_MODEL: ${{ inputs.judge_model || vars.EVAL_JUDGE_MODEL }}
           EVAL_BASELINE: ${{ inputs.baseline || vars.EVAL_BASELINE || 'e45aa78eaec30be8c291989a766ba9153f0e7626' }}
           EVAL_REPEAT: ${{ inputs.repeat || '1' }}
-        run: >-
-          uv run --project evals --frozen herzo-evals
-          --runtime "$EVAL_RUNTIME" --kind "$EVAL_SUITE"
-          --model "$EVAL_MODEL" --judge-model "$EVAL_JUDGE_MODEL"
-          --baseline-ref "$EVAL_BASELINE" --repeat "$EVAL_REPEAT"
-          --concurrency 1 --timeout 600 --include-held-out
-          --output evals/results/ci
+          EVAL_HELD_OUT: ${{ github.event_name == 'schedule' || inputs.include_held_out }}
+        run: |
+          held_out=()
+          if [[ "$EVAL_HELD_OUT" == "true" ]]; then held_out+=(--include-held-out); fi
+          uv run --project evals --frozen herzo-evals \
+            --runtime "$EVAL_RUNTIME" --kind "$EVAL_SUITE" \
+            --model "$EVAL_MODEL" --judge-model "$EVAL_JUDGE_MODEL" \
+            --baseline-ref "$EVAL_BASELINE" --repeat "$EVAL_REPEAT" \
+            --concurrency 1 --timeout 600 "${held_out[@]}" \
+            --output evals/results/ci
       - name: Publish review summary
         if: always()
         run: uv run --project evals --frozen python evals/tools/summarize.py evals/results/ci
