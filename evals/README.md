@@ -85,8 +85,11 @@ commands stay outside its session. Independent checks run after the agent has st
 
 Deterministic checks establish observable behavior. A separate LLM judge receives explicit
 user turns, tool events, diff, and actual check results. It has no access to the agent's process
-or files and cannot infer success from a claimed completion. Streaming deltas and full-context RPC snapshots are omitted from judge input when the
-chronological events already contain that information; the full trial artifact retains them. Oversized evidence, judge errors and execution
+or files and cannot infer success from a claimed completion. Pi's cumulative UI snapshots are normalized before the capture budget is applied. Artifacts
+retain linear streaming deltas, finalized visible messages, ordered tool arguments/results and
+compaction summaries/validation, without repeated aggregate copies. The judge omits streaming
+deltas and internal reasoning text. Full native context is used internally to validate compaction;
+its duplicate snapshots are not persisted. Oversized evidence, judge errors and execution
 failures are reported explicitly rather than treated as favorable truncation or behavior scores.
 
 The CLI exits unsuccessfully for execution/judge failures. A completed trial with failing
