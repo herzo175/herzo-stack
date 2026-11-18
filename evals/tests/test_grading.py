@@ -135,3 +135,13 @@ def test_judge_does_not_duplicate_full_context_snapshots(scenario):
     assert "Observed actual test result" in packet
     assert "compaction_validated" in packet
     assert "get_messages" not in packet
+
+
+def test_measured_long_episode_fits_judge_budget_without_truncation(scenario):
+    result = TrialResult(status="completed", diff="observable finalized evidence\n" * 5000)
+    packet = judge_evidence(scenario, result)
+    assert packet is not None
+    import json
+
+    assert json.loads(packet)["diff"] == result.diff
+    assert judge_evidence(scenario, result.model_copy(update={"diff": "x" * 210_000})) is None

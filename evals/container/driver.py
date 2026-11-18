@@ -51,6 +51,60 @@ def stop(process):
             process.wait()
 
 
+def pi_trace_event(event):
+    """Keep observable actions once; native cumulative UI snapshots are not a transcript."""
+    kind = event.get("type")
+    if kind == "message_update":
+        update = event.get("assistantMessageEvent", {})
+        if not isinstance(update.get("delta"), str):
+            return None
+        return {
+            "type": kind,
+            "assistantMessageEvent": {
+                key: update[key] for key in ("type", "contentIndex", "delta") if key in update
+            },
+        }
+    if kind == "tool_execution_update":
+        return (
+            None  # The completed tool event carries the outcome, without repeated partial output.
+        )
+    if kind == "response":
+        return {key: value for key, value in event.items() if key != "data"}
+    if kind in {"agent_end", "turn_end"}:
+        return {
+            key: value
+            for key, value in event.items()
+            if key not in {"messages", "message", "toolResults"}
+        }
+    if kind in {"message_start", "message_end"}:
+        message = event.get("message", {})
+        if kind == "message_start" or message.get("role") != "assistant":
+            return {
+                "type": kind,
+                "message": {
+                    key: message[key]
+                    for key in ("role", "timestamp", "toolCallId", "isError")
+                    if key in message
+                },
+            }
+        content = message.get("content", [])
+        if isinstance(content, list):
+            visible = []
+            for part in content:
+                if part.get("type") == "thinking":
+                    continue  # Grade observable behavior rather than internal reasoning text.
+                if part.get("type") == "toolCall":
+                    # Full arguments are recorded when the tool actually starts execution.
+                    visible.append(
+                        {key: part[key] for key in ("type", "id", "name") if key in part}
+                    )
+                else:
+                    visible.append(part)
+            message = {**message, "content": visible}
+        return {**event, "message": message}
+    return event
+
+
 def pi(payload, command=None):
     home = Path.home() / ".pi" / "agent"
     home.mkdir(parents=True, exist_ok=True)
@@ -104,7 +158,9 @@ def pi(payload, command=None):
         def receive():
             nonlocal observed_compactions
             event = read_record(process)
-            emit("event", event)
+            trace = pi_trace_event(event)
+            if trace is not None:
+                emit("event", trace)
             if event.get("type") == "message_end":
                 message = event.get("message", {})
                 if message.get("role") == "assistant":

@@ -396,3 +396,58 @@ def test_binary_evidence_distinguishes_removed_file_from_empty_file(tmp_path):
     (tmp_path / "blob.bin").write_bytes(b"")
     emptied = runtime.workspace_diff(initial, tmp_path, 10000)
     assert removed != emptied
+
+
+def test_pi_transcript_is_linear_and_preserves_tool_outcomes(tmp_path, monkeypatch, capsys):
+    monkeypatch.setenv("HOME", str(tmp_path))
+    command = script(
+        tmp_path,
+        """import json,sys
+for line in sys.stdin:
+ r=json.loads(line)
+ if r['type']=='get_commands':
+  print(json.dumps({'type':'response','id':r['id'],'success':True,'data':{'commands':[]}}),flush=True)
+  continue
+ print(json.dumps({'type':'response','id':r['id'],'success':True}),flush=True)
+ for n in range(1,401):
+  partial={'role':'assistant','content':[{'type':'text','text':'x'*(100*n)}]}
+  print(json.dumps({'type':'message_update','message':partial,'assistantMessageEvent':{'type':'text_delta','delta':'x'*100,'partial':partial}}),flush=True)
+ print(json.dumps({'type':'tool_execution_start','toolCallId':'call-1',
+  'toolName':'bash','args':{'command':'python3 -m unittest'}}),flush=True)
+ print(json.dumps({'type':'tool_execution_end','toolCallId':'call-1','toolName':'bash',
+  'result':{'content':[{'type':'text','text':'FAILED (failures=1)'}]},
+  'isError':True}),flush=True)
+ message={'role':'assistant','content':[{'type':'text','text':'Reproduced failure.'}]}
+ print(json.dumps({'type':'message_end','message':message}),flush=True)
+ print(json.dumps({'type':'turn_end','message':message,'toolResults':[{'content':'duplicate'}]}),flush=True)
+ print(json.dumps({'type':'agent_end','messages':[message]}),flush=True)
+""",
+    )
+    result = driver.pi(payload(prompts=["Reproduce the failure"]), command)
+    trace = capsys.readouterr().out
+    assert len(trace.encode()) < 200_000
+    assert trace.count("FAILED (failures=1)") == 1
+    assert trace.index("tool_execution_start") < trace.index("tool_execution_end")
+    assert "python3 -m unittest" in trace
+    assert result["final_response"] == "Reproduced failure."
+
+
+def test_transcript_projection_does_not_change_native_compaction_input():
+    event = {
+        "type": "response",
+        "command": "get_messages",
+        "success": True,
+        "data": {"messages": [{"role": "user", "content": "keep this policy"}]},
+    }
+    projected = driver.pi_trace_event(event)
+    assert "data" not in projected
+    assert event["data"]["messages"][0]["content"] == "keep this policy"
+    start = {"type": "tool_execution_start", "toolCallId": "x", "args": {"command": "exit 1"}}
+    end = {
+        "type": "tool_execution_end",
+        "toolCallId": "x",
+        "isError": True,
+        "result": {"content": [{"type": "text", "text": "failed"}]},
+    }
+    assert driver.pi_trace_event(start) == start
+    assert driver.pi_trace_event(end) == end
