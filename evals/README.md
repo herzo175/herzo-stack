@@ -75,7 +75,9 @@ new held-out cases. It is a workflow convention, not access control.
 ## Grading and results
 
 Each trial saves normalized chronological events, the final code diff, independent checks,
-termination status, observed usage, and elapsed duration. Each completed case also saves its
+termination status, observed usage, and elapsed duration. Binary outputs are represented by
+byte counts and SHA-256 hashes rather than undecodable text; code diffs and independent data
+checks remain available. Each completed case also saves its
 verdict immediately using Pydantic's lifecycle hook, so interrupting a later case does not erase
 already graded results. Private raw conversation archives are
 never uploaded. Fixture prompts and source are visible to the coding agent; rubric and grader

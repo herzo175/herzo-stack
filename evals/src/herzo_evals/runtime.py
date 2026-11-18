@@ -2,6 +2,7 @@
 
 import asyncio
 import difflib
+import hashlib
 import json
 import os
 import shutil
@@ -153,19 +154,40 @@ def workspace_diff(initial: dict[str, str], workspace: Path, limit: int) -> str:
                 size += item.stat().st_size
                 if size > limit:
                     raise OutputLimit("Final workspace exceeded the configured byte budget")
-                final[relative] = item.read_text(errors="replace")
+                final[relative] = item.read_bytes()
             else:
                 raise RuntimeFailure(f"Nonregular file in final workspace: {relative}")
     lines = []
     for name in sorted(initial.keys() | final.keys()):
-        lines.extend(
-            difflib.unified_diff(
-                initial.get(name, "").splitlines(keepends=True),
-                final.get(name, "").splitlines(keepends=True),
-                fromfile=f"a/{name}",
-                tofile=f"b/{name}",
+        before = initial.get(name, "").encode()
+        after = final.get(name, b"")
+        if before == after:
+            if name not in initial:
+                lines.append(f"Added empty file: {name}\n")
+            elif name not in final:
+                lines.append(f"Removed empty file: {name}\n")
+            continue
+        binary = b"\0" in before or b"\0" in after
+        if not binary:
+            try:
+                before_text, after_text = before.decode(), after.decode()
+            except UnicodeDecodeError:
+                binary = True
+        if binary:
+            lines.append(
+                f"Binary file {name}: {len(before)} bytes "
+                f"sha256:{hashlib.sha256(before).hexdigest()}"
+                f" -> {len(after)} bytes sha256:{hashlib.sha256(after).hexdigest()}\n"
             )
-        )
+        else:
+            lines.extend(
+                difflib.unified_diff(
+                    before_text.splitlines(keepends=True),
+                    after_text.splitlines(keepends=True),
+                    fromfile=f"a/{name}",
+                    tofile=f"b/{name}",
+                )
+            )
     diff = "".join(lines)
     if len(diff.encode()) > limit:
         raise OutputLimit("Workspace diff exceeded the configured byte budget")

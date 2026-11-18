@@ -367,3 +367,24 @@ def test_opencode_builtin_skills_are_recorded_but_external_skills_are_exact():
     inventory.append({"name": "unexpected", "location": "/home/node/private/SKILL.md"})
     with pytest.raises(driver.ProtocolError, match="inventory mismatch"):
         driver.opencode_inventory(inventory, ["debugging"])
+
+
+def test_binary_outputs_keep_auditable_hashes_without_flooding_judge_context(tmp_path):
+    import hashlib
+
+    data = b"SQLite format 3\0" + b"\0" * 8192
+    (tmp_path / "source.sqlite").write_bytes(data)
+    (tmp_path / "code.py").write_text("def collect():\n    return 42\n")
+    diff = runtime.workspace_diff({}, tmp_path, 100_000)
+    assert "\0" not in diff
+    assert "source.sqlite" in diff and hashlib.sha256(data).hexdigest() in diff
+    assert "return 42" in diff
+    assert len(json.dumps(diff)) < 2000
+
+
+def test_diff_records_new_empty_files_and_non_utf8_outputs(tmp_path):
+    (tmp_path / "empty.py").write_bytes(b"")
+    (tmp_path / "encoded.bin").write_bytes(b"\xff\xfe")
+    diff = runtime.workspace_diff({}, tmp_path, 10000)
+    assert "Added empty file: empty.py" in diff
+    assert "Binary file encoded.bin:" in diff
