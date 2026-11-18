@@ -10,7 +10,8 @@ import tempfile
 from pathlib import Path
 
 from herzo_evals.models import Settings
-from herzo_evals.runner import load_scenarios, paired_experiment
+from herzo_evals.runner import load_scenarios, paired_experiment, run_experiment
+from herzo_evals.selection import matrix_for, shard_cases
 
 REPO = Path(__file__).resolve().parents[3]
 
@@ -42,10 +43,26 @@ def snapshot_skills(repo: Path, ref: str, destination: Path) -> str:
     return revision
 
 
+def parse_shard(value: str) -> tuple[int, int]:
+    try:
+        index, total = (int(part) for part in value.split("/"))
+        shard_cases([], index, total)
+    except ValueError as exc:
+        raise argparse.ArgumentTypeError("Use INDEX/TOTAL, with 0 <= INDEX < TOTAL <= 50") from exc
+    return index, total
+
+
 def parser() -> argparse.ArgumentParser:
     result = argparse.ArgumentParser(description=__doc__)
     result.add_argument(
         "--list", action="store_true", help="List cases without credentials or Docker"
+    )
+    result.add_argument("--matrix", action="store_true", help="Print a bounded CI matrix as JSON")
+    result.add_argument("--shard", type=parse_shard, default=(0, 1), metavar="INDEX/TOTAL")
+    result.add_argument(
+        "--candidate-only",
+        action="store_true",
+        help="Characterize the current pack without paying for a duplicate arm",
     )
     result.add_argument("--cases", type=Path, default=REPO / "evals/cases")
     result.add_argument("--case", action="append", default=[])
@@ -77,6 +94,10 @@ def main() -> None:
     scenarios = load_scenarios(args.cases, args.case, args.include_held_out)
     if args.kind:
         scenarios = [case for case in scenarios if case.kind in args.kind]
+    if args.matrix:
+        print(json.dumps(matrix_for(scenarios)))
+        return
+    scenarios = shard_cases(scenarios, *args.shard)
     if args.list:
         for case in scenarios:
             print(f"{case.id}\t{case.kind}\t{','.join(case.skills)}")
@@ -85,8 +106,8 @@ def main() -> None:
         raise SystemExit("No scenarios selected")
     if not args.model or not args.judge_model:
         raise SystemExit("Specify --model and --judge-model OpenRouter IDs")
-    if bool(args.baseline_ref) == bool(args.no_skill_baseline):
-        raise SystemExit("Choose --baseline-ref or --no-skill-baseline")
+    if sum(map(bool, [args.baseline_ref, args.no_skill_baseline, args.candidate_only])) != 1:
+        raise SystemExit("Choose --baseline-ref, --no-skill-baseline, or --candidate-only")
     if args.runtime != "pi" and any(case.kind == "compaction" for case in scenarios):
         raise SystemExit(
             "Compaction cases currently require the Pi adapter; select --kind explicitly"
@@ -107,21 +128,38 @@ def main() -> None:
         if args.baseline_ref:
             revision = snapshot_skills(REPO, args.baseline_ref, Path(scratch))
             baseline = Path(scratch) / "skills"
-        results = asyncio.run(
-            paired_experiment(
-                scenarios,
-                settings,
-                baseline,
-                args.output,
-                args.repeat,
-                args.concurrency,
-                judge=not args.no_judge,
+        if args.candidate_only:
+            results = {
+                "candidate": asyncio.run(
+                    run_experiment(
+                        scenarios,
+                        settings,
+                        args.output / "candidate",
+                        args.repeat,
+                        args.concurrency,
+                        "candidate",
+                        judge=not args.no_judge,
+                    )
+                )
+            }
+        else:
+            results = asyncio.run(
+                paired_experiment(
+                    scenarios,
+                    settings,
+                    baseline,
+                    args.output,
+                    args.repeat,
+                    args.concurrency,
+                    judge=not args.no_judge,
+                )
             )
-        )
         (args.output / "comparison.json").write_text(
             json.dumps(
                 {
-                    "baseline_revision": revision,
+                    "baseline_revision": None if args.candidate_only else revision,
+                    "mode": "characterization" if args.candidate_only else "paired",
+                    "shard": {"index": args.shard[0], "total": args.shard[1]},
                     "arms": results,
                     "interpretation": (
                         "Behavioral results are report-only; inspect each assertion and trace."

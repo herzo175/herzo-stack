@@ -75,6 +75,8 @@ async def test_repetitions_persist_evidence_and_remove_secret(scenario, tmp_path
         evidence = tmp_path / "arm" / row["trial_id"] / "result.json"
         assert evidence.is_file()
         assert json.loads(evidence.read_text())["trial_id"] == row["trial_id"]
+        verdict = evidence.with_name("verdict.json")
+        assert json.loads(verdict.read_text()) == row
     for path in (tmp_path / "arm").rglob("*.json"):
         assert key not in path.read_text()
     assert all(row["assertions"]["check_meaning"]["passed"] for row in rows)
@@ -145,3 +147,49 @@ def test_fixture_paths_cannot_escape_or_override_agent_resources(scenario):
         data["files"] = {path: "bad"}
         with pytest.raises(ValueError, match="Unsafe"):
             Scenario.model_validate(data)
+
+
+async def test_completed_case_verdict_survives_later_cancellation(scenario, tmp_path, monkeypatch):
+    import asyncio
+
+    monkeypatch.setenv("OPENROUTER_API_KEY", "private-key")
+    started_second = asyncio.Event()
+    count = 0
+
+    async def execute(case, settings, output):
+        nonlocal count
+        count += 1
+        if count == 2:
+            started_second.set()
+            await asyncio.Event().wait()
+        return TrialResult(
+            status="completed",
+            checks=[
+                CheckResult(name="meaning", passed=True, exit_code=0, output="ok"),
+            ],
+        )
+
+    monkeypatch.setitem(sys.modules, "herzo_evals.runtime", SimpleNamespace(execute=execute))
+    monkeypatch.setattr(subprocess, "run", lambda *_, **__: SimpleNamespace(stdout="sha256:fake"))
+    settings = Settings(
+        runtime="pi", model="provider/agent", judge_model="provider/judge", skills_root=None
+    )
+    run = asyncio.create_task(
+        run_experiment(
+            [scenario],
+            settings,
+            tmp_path / "arm",
+            2,
+            1,
+            "candidate",
+            judge=False,
+        )
+    )
+    await asyncio.wait_for(started_second.wait(), timeout=3)
+    run.cancel()
+    with pytest.raises(asyncio.CancelledError):
+        await run
+    verdicts = list((tmp_path / "arm").glob("*/verdict.json"))
+    assert len(verdicts) == 1
+    assert json.loads(verdicts[0].read_text())["assertions"]["check_meaning"]["passed"]
+    assert not (tmp_path / "arm/summary.json").exists()
