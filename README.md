@@ -115,3 +115,10 @@ To tell agents these skills exist and to suggest improvements to them, put a sho
 - Keep upstream licenses in `UPSTREAM_LICENSE` when adapting someone else's skill.
 - When you add or remove a skill, update `.claude-plugin/plugin.json` (`skills`) and the table
   above, and bump `version` so plugin installs pick it up.
+
+## Evaluate changes
+
+The [behavioral eval suite](evals/README.md) runs conversation-derived tasks through isolated
+Pi or OpenCode sessions, compares pinned skill versions, and grades actual outcomes with
+Pydantic Evals and OpenRouter. Raw conversation histories stay local. Model-funded runs are
+explicit or opt-in; behavioral verdicts initially inform review rather than block merges.

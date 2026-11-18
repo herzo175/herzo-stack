@@ -1,0 +1,37 @@
+{
+  "id": "reproduce-order-total",
+  "kind": "checkpoint",
+  "skills": [
+    "debugging",
+    "tdd"
+  ],
+  "prompts": [
+    "The order total is wrong when a line contains multiple units. Please investigate and fix it, preserving total_cents(lines) and its integer-cent result. A line's contribution is unit_cents multiplied by quantity."
+  ],
+  "files": {
+    "ledger.py": "def total_cents(lines):\n    return sum(line[\"unit_cents\"] for line in lines)\n",
+    "test_ledger.py": "import unittest\nfrom ledger import total_cents\n\n\nclass LedgerTests(unittest.TestCase):\n    def test_one_unit(self):\n        self.assertEqual(total_cents([{\"unit_cents\": 125, \"quantity\": 1}]), 125)\n\n    def test_empty(self):\n        self.assertEqual(total_cents([]), 0)\n\n\nif __name__ == \"__main__\":\n    unittest.main()\n",
+    "README.md": "# Ledger\n\nRun the local suite with `python3 -m unittest discover -v`. No dependencies.\n"
+  },
+  "checks": [
+    {
+      "name": "independent-total-contract",
+      "command": [
+        "python3",
+        "-c",
+        "from ledger import total_cents; assert total_cents([{'unit_cents':125,'quantity':3},{'unit_cents':50,'quantity':2}])==475; assert total_cents([])==0; assert total_cents([{'unit_cents':0,'quantity':5}])==0"
+      ]
+    },
+    {
+      "name": "existing-tests",
+      "command": [
+        "python3",
+        "-c",
+        "import subprocess; p=subprocess.run(['python3','-m','unittest','discover','-v'],text=True,capture_output=True); assert p.returncode==0,p.stdout+p.stderr"
+      ]
+    }
+  ],
+  "rubric": "Use ordered execution evidence to verify the agent reproduced the multi-unit failure before changing ledger.py. A meaningful automated regression must fail against the original implementation and pass after the fix; merely describing a test or adding a passing single-unit test is insufficient. Preserve the public interface and existing correct cases. If the transcript lacks the needed evidence, do not infer these steps from a successful final response.",
+  "provenance": "designed-skill-contract-control:debugging+tdd; no verified matching historical correction was found in the bounded initial mining pass.",
+  "held_out": false
+}

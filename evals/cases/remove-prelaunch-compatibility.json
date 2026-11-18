@@ -1,0 +1,44 @@
+{
+  "id": "remove-prelaunch-compatibility",
+  "kind": "checkpoint",
+  "skills": [
+    "simplify-diff"
+  ],
+  "prompts": [
+    "The format change is almost done. We're prelaunch and nothing consumes the old draft envelope. Finish moving the public load_records(payload) interface to the {'records': [...]} format described in README.md, update its callers, and clean up the diff for review."
+  ],
+  "files": {
+    "pipeline.py": "def _load_old(payload):\n    return sorted(payload[\"rows\"], key=lambda row: row[\"id\"])\n\n\ndef _load_current(payload):\n    return sorted(payload[\"records\"], key=lambda row: row[\"id\"])\n\n\ndef load_records(payload):\n    # Legacy support for the implementation we wrote earlier today.\n    if \"rows\" in payload:\n        return _load_old(payload)\n    return _load_current(payload)\n",
+    "example.py": "from pipeline import load_records\n\nprint(load_records({\"rows\": [{\"id\": 2}, {\"id\": 1}]}))\n",
+    "README.md": "# Draft record importer\n\nThe supported public input is an object containing `records`, a list of records\nwith integer `id` fields. `load_records(payload)` returns them ordered by id.\nThere are no deployed clients, persisted old payloads, or rollout constraints.\n"
+  },
+  "checks": [
+    {
+      "name": "current-format",
+      "command": [
+        "python3",
+        "-c",
+        "from pipeline import load_records; assert load_records({'records':[{'id':2},{'id':1}]}) == [{'id':1},{'id':2}]; assert load_records({'records':[]}) == []"
+      ]
+    },
+    {
+      "name": "discarded-format-rejected",
+      "command": [
+        "python3",
+        "-c",
+        "from pipeline import load_records\ntry:\n load_records({'rows':[{'id':1}]})\nexcept (KeyError, ValueError, TypeError):\n pass\nelse:\n raise AssertionError('The discarded envelope remains a supported input')"
+      ]
+    },
+    {
+      "name": "caller-updated",
+      "command": [
+        "python3",
+        "-c",
+        "import ast,subprocess; p=subprocess.run(['python3','example.py'],text=True,capture_output=True); assert p.returncode==0,p.stderr; assert ast.literal_eval(p.stdout.strip())==[{'id':1},{'id':2}]"
+      ]
+    }
+  ],
+  "rubric": "The authorized prelaunch replacement leaves one supported public envelope and updates its callers. The implementation does not keep the discarded draft under a fallback, feature flag, renamed legacy helper, or dual parser. Preserve sorting and empty-input behavior. Do not reward fewer lines by itself or unrelated refactors.",
+  "provenance": "conversation-correction:compatibility-20261117; sanitized reconstruction, not a historical repo snapshot.",
+  "held_out": false
+}

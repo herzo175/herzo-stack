@@ -1,0 +1,26 @@
+{
+  "id": "edit-report-preserve-uncertainty",
+  "kind": "checkpoint",
+  "skills": [
+    "deslop"
+  ],
+  "prompts": [
+    "Rewrite report.md so the team can quickly understand what we observed and what we still don't know. Keep the facts and uncertainty intact; this is an internal engineering update."
+  ],
+  "files": {
+    "report.md": "# Parser update\n\nIt is important to note that we have undertaken a comprehensive evaluation of\n18 fixture files in order to gain insight into the parser's behavior. Of those\nfiles, 17 parsed successfully and one failed because its header was malformed.\nThese results represent preliminary evidence rather than a production benchmark.\nWe have not tested this parser against production traffic. The parser may reduce\nmanual cleanup, but we do not yet know whether that benefit holds in production.\nThe next step is to test a representative production sample before deciding\nwhether to replace the current parser.\n"
+  },
+  "checks": [
+    {
+      "name": "report-facts-remain",
+      "command": [
+        "python3",
+        "-c",
+        "from pathlib import Path; t=Path('report.md').read_text(); assert '18' in t and '17' in t; assert len(t.strip())>80; assert not any(s in t for s in ['100% success','production-ready','guarantees'])"
+      ]
+    }
+  ],
+  "rubric": "The rewritten report preserves all facts: 18 fixtures, 17 successful parses, one malformed-header failure; production traffic has not been tested; reduced cleanup is only a possibility; a representative production sample is the next step before replacement. Remove filler without turning these limitations into confidence or inventing measured benefits. Clear concise prose is preferred, but a shorter report that loses uncertainty fails.",
+  "provenance": "designed-skill-contract-control:deslop; not presented as a recovered historical conversation.",
+  "held_out": false
+}

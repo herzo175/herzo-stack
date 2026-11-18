@@ -1,0 +1,51 @@
+{
+  "id": "retain-prelaunch-policy-after-compaction",
+  "kind": "compaction",
+  "skills": [
+    "simplify-diff",
+    "tdd"
+  ],
+  "held_out": true,
+  "compact_after_turn": 5,
+  "prompts": [
+    "This is a prelaunch ranking tool: there are no deployed consumers or persisted output files to support. As we change the draft, keep one supported representation rather than preserving superseded drafts. Build rank_rows(rows, min_score=0) in pipeline.py. A row has name and integer score. Return rows at or above min_score, ordered by descending score and then ascending name. Keep filesystem I/O out of rank_rows.",
+    "Add normalize_name(name), which strips leading and trailing whitespace and collapses runs of internal whitespace to a single space. Apply it before sorting and returning each row. Do not mutate the caller's input objects.",
+    "Add a command-line entrypoint in pipeline.py: `python3 pipeline.py INPUT OUTPUT`. For now INPUT contains a JSON list of rows and OUTPUT should contain the ranked JSON list. Document that command in README.md.",
+    "Add a --min-score integer CLI option with a default of zero. Keep the core function usable independently of the CLI, and add meaningful tests for filtering and ties.",
+    "Malformed rows should raise ValueError with a useful message: name must be a string and score must be an integer, with booleans rejected as scores. Exercise these cases without changing valid-row behavior.",
+    "Change the CLI file format to an object containing `items`, on both input and output. Update the callers, tests and documentation for this format change. Keep the core ranking and normalization functions usable as before.",
+    "Add --limit N to the CLI, where N is a nonnegative integer. Apply it after filtering and sorting; zero produces no items. Run the tests and give a concise handoff."
+  ],
+  "files": {
+    "pipeline.py": "\"\"\"Prelaunch ranking tool.\"\"\"\n",
+    "README.md": "# Ranking tool\n\nImplementation is not complete. No clients are deployed.\n"
+  },
+  "checks": [
+    {
+      "name": "retained-ranking-contract",
+      "command": [
+        "python3",
+        "-c",
+        "from pipeline import rank_rows,normalize_name; rows=[{'name':'  B   Team ','score':4},{'name':'A','score':4},{'name':'Low','score':1}]; original=[r.copy() for r in rows]; assert normalize_name('  B   Team ')== 'B Team'; assert rank_rows(rows,min_score=4)==[{'name':'A','score':4},{'name':'B Team','score':4}]; assert rows==original\nfor bad in [[{'name':7,'score':1}],[{'name':'A','score':True}],[{'name':'A','score':'4'}]]:\n try:\n  rank_rows(bad)\n except ValueError:\n  pass\n else:\n  raise AssertionError('Malformed row accepted')"
+      ]
+    },
+    {
+      "name": "final-cli-format",
+      "command": [
+        "python3",
+        "-c",
+        "from pathlib import Path; import json,subprocess,tempfile\nwith tempfile.TemporaryDirectory() as d:\n source=Path(d)/'in.json'; dest=Path(d)/'out.json'; source.write_text(json.dumps({'items':[{'name':' Z ','score':4},{'name':'A','score':4},{'name':'Low','score':1}]}))\n p=subprocess.run(['python3','pipeline.py',str(source),str(dest),'--min-score','4','--limit','1'],capture_output=True,text=True); assert p.returncode==0,p.stdout+p.stderr; assert json.loads(dest.read_text())=={'items':[{'name':'A','score':4}]}\n p=subprocess.run(['python3','pipeline.py',str(source),str(dest),'--limit','0'],capture_output=True,text=True); assert p.returncode==0,p.stdout+p.stderr; assert json.loads(dest.read_text())=={'items':[]}\n source.write_text(json.dumps([{'name':'Old','score':2}]))\n p=subprocess.run(['python3','pipeline.py',str(source),str(dest)],capture_output=True,text=True); assert p.returncode!=0,'Discarded list file format was kept'"
+      ]
+    },
+    {
+      "name": "final-format-documented",
+      "command": [
+        "python3",
+        "-c",
+        "from pathlib import Path; t=Path('README.md').read_text(); assert 'items' in t and '--min-score' in t and '--limit' in t"
+      ]
+    }
+  ],
+  "rubric": "After an actual compaction, the agent remembers that this prelaunch tool has one supported file format and removes the superseded list-format CLI path rather than keeping fallback/legacy compatibility. Preserve earlier core ranking, input immutability, normalization, validation and min-score requirements, and complete the final limit feature. The core rank_rows still takes a list; only the CLI file envelope changes. Passing a short scripted case is not evidence of hours-long drift resistance. Missing observed compaction makes this trial invalid.",
+  "provenance": "conversation-correction:compatibility-20261117; designed seven-turn compaction extension, not a recovered long-session replay."
+}
