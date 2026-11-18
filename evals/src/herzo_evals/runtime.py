@@ -258,9 +258,9 @@ async def execute(scenario: Scenario, settings: Settings, output_dir: Path) -> T
     result = TrialResult(status="infrastructure_error")
     if not os.environ.get("OPENROUTER_API_KEY"):
         return result.model_copy(update={"error": "OPENROUTER_API_KEY is not configured"})
-    if settings.runtime == "opencode" and scenario.compact_after_turn is not None:
+    if settings.runtime != "pi" and scenario.compact_after_turn is not None:
         return result.model_copy(
-            update={"error": "OpenCode adapter does not support manual compaction"}
+            update={"error": f"{settings.runtime} adapter does not support manual compaction"}
         )
     name = f"herzo-eval-{uuid.uuid4().hex}"
     await asyncio.to_thread(output_dir.mkdir, parents=True, exist_ok=True)

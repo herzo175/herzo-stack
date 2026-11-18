@@ -65,7 +65,7 @@ async def test_repetitions_persist_evidence_and_remove_secret(scenario, tmp_path
     monkeypatch.setitem(sys.modules, "herzo_evals.runtime", SimpleNamespace(execute=execute))
     monkeypatch.setattr(subprocess, "run", lambda *_, **__: SimpleNamespace(stdout="sha256:fake"))
     settings = Settings(
-        runtime="pi", model="provider/agent", judge_model="provider/judge", skills_root=None
+        runtime="pi", model="qwen/qwen3.8-27b", judge_model="provider/judge", skills_root=None
     )
     rows = await run_experiment(
         [scenario], settings, tmp_path / "arm", 2, 1, "baseline", judge=False
@@ -175,7 +175,7 @@ async def test_completed_case_verdict_survives_later_cancellation(scenario, tmp_
     monkeypatch.setitem(sys.modules, "herzo_evals.runtime", SimpleNamespace(execute=execute))
     monkeypatch.setattr(subprocess, "run", lambda *_, **__: SimpleNamespace(stdout="sha256:fake"))
     settings = Settings(
-        runtime="pi", model="provider/agent", judge_model="provider/judge", skills_root=None
+        runtime="pi", model="qwen/qwen3.8-27b", judge_model="provider/judge", skills_root=None
     )
     run = asyncio.create_task(
         run_experiment(
@@ -257,7 +257,7 @@ def test_characterization_runs_one_arm_and_keeps_behavior_failures_report_only(
             "--case",
             "remove-prelaunch-compatibility",
             "--model",
-            "provider/agent",
+            "qwen/qwen3.8-27b",
             "--judge-model",
             "provider/judge",
             "--output",

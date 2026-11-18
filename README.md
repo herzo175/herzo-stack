@@ -119,6 +119,6 @@ To tell agents these skills exist and to suggest improvements to them, put a sho
 ## Evaluate changes
 
 The [behavioral eval suite](evals/README.md) runs conversation-derived tasks through isolated
-Pi or OpenCode sessions, compares pinned skill versions, and grades actual outcomes with
+Pi, OpenCode, Codex or Claude Code sessions, compares skills versus no skills, and grades outcomes with
 Pydantic Evals and OpenRouter. Raw conversation histories stay local. Model-funded runs are
 explicit or opt-in; behavioral verdicts initially inform review rather than block merges.

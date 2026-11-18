@@ -46,7 +46,7 @@ class Scenario(StrictModel):
                 path.is_absolute()
                 or ".." in path.parts
                 or not path.parts
-                or path.parts[0] in {".git", ".pi", ".opencode", ".agents"}
+                or path.parts[0] in {".git", ".pi", ".opencode", ".agents", ".codex", ".claude"}
                 or "\\" in name
             ):
                 raise ValueError(f"Unsafe fixture path: {name}")
@@ -71,8 +71,21 @@ class Scenario(StrictModel):
         return self
 
 
+OPEN_MODELS = frozenset({"deepseek/deepseek-v4.1-flash", "z-ai/glm-5.3", "qwen/qwen3.8-27b"})
+
+
+def validate_model_pair(runtime: str, model: str) -> None:
+    if runtime in {"pi", "opencode"} and model not in OPEN_MODELS:
+        raise ValueError(f"{runtime} requires an open model from: {', '.join(sorted(OPEN_MODELS))}")
+    required = {"claude": "anthropic/claude-", "codex": "openai/gpt-"}.get(runtime)
+    if required and not model.startswith(required):
+        raise ValueError(
+            f"{runtime} requires a {required} model; use pi or opencode for other models"
+        )
+
+
 class Settings(StrictModel):
-    runtime: Literal["pi", "opencode"]
+    runtime: Literal["pi", "opencode", "codex", "claude"]
     model: str = Field(min_length=3)
     judge_model: str = Field(min_length=3)
     skills_root: Path | None
@@ -80,6 +93,11 @@ class Settings(StrictModel):
     timeout_seconds: int = Field(default=600, ge=1, le=3600)
     max_output_bytes: int = Field(default=4_000_000, ge=1000, le=20_000_000)
     max_output_tokens: int = Field(default=8192, ge=512, le=32768)
+
+    @model_validator(mode="after")
+    def supported_model_pair(self) -> "Settings":
+        validate_model_pair(self.runtime, self.model)
+        return self
 
 
 class CheckResult(StrictModel):
